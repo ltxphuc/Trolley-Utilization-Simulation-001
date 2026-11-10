@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CCT Trolley Model</title>
+<style>
+:root{
+  --bg:#FBFCFD; --panel:#FFFFFF; --panel2:#EEF3F8; --ink:#101720; --muted:#5C6B7A;
+  --rule:#DCE4ED; --rule2:#C3D0DE;
+  --s1:#3A6FB0; --s2:#1E9E8A; --s3:#E8A33D; --bad:#B23B32;
+  --badBg:#FBEDEB; --goodBg:#E9F6F3; --shadow:0 1px 3px rgba(16,23,32,.07);
+}
+:root[data-theme="dark"]{
+  --bg:#0D1117; --panel:#161C24; --panel2:#1E2630; --ink:#E8EEF5; --muted:#93A2B2;
+  --rule:#242D38; --rule2:#36434F;
+  --s1:#4A82C4; --s2:#22A891; --s3:#BB8228; --bad:#E0796E;
+  --badBg:#2A1512; --goodBg:#11251F; --shadow:none;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0D1117; --panel:#161C24; --panel2:#1E2630; --ink:#E8EEF5; --muted:#93A2B2;
+    --rule:#242D38; --rule2:#36434F;
+    --s1:#4A82C4; --s2:#22A891; --s3:#BB8228; --bad:#E0796E;
+    --badBg:#2A1512; --goodBg:#11251F; --shadow:none;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--bg); color:var(--ink); padding:0 20px 64px;
+  font:400 15px/1.55 "IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.mono,.num{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-variant-numeric:tabular-nums}
+h1,h2,h3{margin:0;font-family:Archivo,"IBM Plex Sans",system-ui,sans-serif;
+  letter-spacing:-.015em;text-wrap:balance}
+h1{font-size:26px;font-weight:700}
+h2{font-size:17px;font-weight:700}
+h3{font-size:12px;font-weight:600}
+.wrap{max-width:1240px;margin:0 auto}
+
+/* ---------------------------------------------------------------- header */
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;
+  flex-wrap:wrap;padding:26px 0 18px;border-bottom:1px solid var(--rule)}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.srcline{font-size:12.5px;color:var(--muted);margin-top:5px}
+button.theme{background:var(--panel);color:var(--muted);border:1px solid var(--rule2);
+  border-radius:4px;padding:7px 12px;font-size:12px;cursor:pointer;font-family:inherit}
+button.theme:hover{color:var(--ink);border-color:var(--muted)}
+
+/* ------------------------------------------------------------------ grid */
+.cols{display:grid;grid-template-columns:290px 1fr;gap:24px;margin-top:24px;align-items:start}
+@media (max-width:940px){.cols{grid-template-columns:1fr}}
+
+/* -------------------------------------------------------------- controls */
+.rail{position:sticky;top:16px;display:flex;flex-direction:column;gap:14px}
+@media (max-width:940px){.rail{position:static}}
+.ctl{background:var(--panel);border:1px solid var(--rule);border-radius:6px;
+  padding:15px 16px;box-shadow:var(--shadow)}
+.ctl h3{color:var(--muted);text-transform:uppercase;letter-spacing:.09em;
+  font-family:"IBM Plex Mono",monospace;font-size:10px;font-weight:400;margin-bottom:12px}
+.field{margin-bottom:17px}
+.field:last-child{margin-bottom:0}
+.field>label{display:flex;justify-content:space-between;align-items:baseline;
+  gap:8px;font-size:13px;font-weight:500;margin-bottom:7px}
+.field .val{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--s1);font-weight:500}
+.hint{font-size:11.5px;color:var(--muted);line-height:1.45;margin-top:6px}
+.chg{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:9.5px;
+  letter-spacing:.06em;border:1px solid var(--rule2);border-radius:3px;
+  padding:1px 5px;color:var(--muted);margin-right:6px;vertical-align:1px}
+
+input[type=range]{width:100%;-webkit-appearance:none;appearance:none;background:transparent;
+  margin:2px 0;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:var(--rule2)}
+input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:var(--rule2)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;
+  border-radius:50%;background:var(--s1);border:2px solid var(--panel);margin-top:-6px;
+  box-shadow:0 0 0 1px var(--rule2)}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;
+  background:var(--s1);border:2px solid var(--panel);box-shadow:0 0 0 1px var(--rule2)}
+input[type=range]:focus-visible{outline:2px solid var(--s1);outline-offset:4px;border-radius:3px}
+
+.seg{display:flex;gap:0;border:1px solid var(--rule2);border-radius:5px;overflow:hidden}
+.seg button{flex:1;background:var(--panel);border:0;border-right:1px solid var(--rule2);
+  padding:7px 4px;font:500 12.5px/1 "IBM Plex Sans",sans-serif;color:var(--muted);cursor:pointer}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed=true]{background:var(--s1);color:#fff}
+.seg button:focus-visible{outline:2px solid var(--s1);outline-offset:-2px}
+
+.presets{display:flex;gap:8px}
+.presets button{flex:1;background:var(--panel2);border:1px solid var(--rule2);border-radius:5px;
+  padding:8px 6px;font:500 12px/1.3 "IBM Plex Sans",sans-serif;color:var(--ink);cursor:pointer}
+.presets button:hover{border-color:var(--s1);color:var(--s1)}
+
+.warn{margin-top:10px;background:var(--badBg);border:1px solid var(--bad);border-radius:4px;
+  padding:9px 11px;font-size:11.5px;color:var(--ink);line-height:1.45}
+.warn strong{color:var(--bad)}
+
+/* --------------------------------------------------------------- verdict */
+.verdict{border-radius:7px;border:1px solid var(--rule);background:var(--panel);
+  padding:22px 24px;box-shadow:var(--shadow);
+  display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center}
+@media (max-width:640px){.verdict{grid-template-columns:1fr}}
+.verdict.short{border-color:var(--bad);background:var(--badBg)}
+.verdict.ok{border-color:var(--s2);background:var(--goodBg)}
+.vlabel{font-family:Archivo,sans-serif;font-weight:700;font-size:12px;letter-spacing:.11em;
+  text-transform:uppercase}
+.verdict.short .vlabel{color:var(--bad)}
+.verdict.ok .vlabel{color:var(--s2)}
+.vbig{font-family:Archivo,sans-serif;font-weight:700;font-size:40px;line-height:1.05;
+  margin:9px 0 0;letter-spacing:-.025em}
+.vsub{font-size:13.5px;color:var(--muted);margin-top:8px;max-width:52ch}
+.vsub b{color:var(--ink)}
+
+/* --------------------------------------------------------------- tiles */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:12px;margin-top:16px}
+.tile{background:var(--panel);border:1px solid var(--rule);border-radius:6px;
+  padding:14px 15px;box-shadow:var(--shadow)}
+.tile .k{font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);line-height:1.4;min-height:27px}
+.tile .v{font-family:Archivo,sans-serif;font-weight:700;font-size:26px;margin:8px 0 0;
+  letter-spacing:-.02em}
+.tile .v em{font-style:normal;font-size:15px;color:var(--muted);font-weight:600}
+.tile .d{font-family:"IBM Plex Mono",monospace;font-size:11.5px;margin-top:5px;color:var(--muted)}
+.tile .d.up{color:var(--s2)} .tile .d.down{color:var(--bad)}
+
+/* --------------------------------------------------------------- panels */
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:6px;
+  padding:18px 20px;box-shadow:var(--shadow);margin-top:16px}
+.panel>h2{margin-bottom:3px}
+.panel>.sub{font-size:12.5px;color:var(--muted);margin:0 0 15px;max-width:70ch}
+.split{display:grid;grid-template-columns:190px 1fr;gap:26px;align-items:center}
+@media (max-width:700px){.split{grid-template-columns:1fr}}
+svg{display:block;max-width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:12px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;
+  vertical-align:0px}
+footer{margin-top:34px;padding-top:18px;border-top:1px solid var(--rule);
+  font-size:12px;color:var(--muted);line-height:1.6}
+footer code{font-family:"IBM Plex Mono",monospace;font-size:11.5px;
+  background:var(--panel2);padding:1px 5px;border-radius:3px}
+@media (prefers-reduced-motion:no-preference){
+  .barfill,.compfill,.vbig,.tile .v{transition:all .22s cubic-bezier(.4,0,.2,1)}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div>
+    <div class="eyebrow">Central Cutting &middot; Job Sequence &amp; Panel Loading</div>
+    <h1>Trolley model</h1>
+    <div class="srcline" id="srcline"></div>
+  </div>
+  <button class="theme" id="themeBtn" type="button">Dark mode</button>
+</header>
+
+<div class="cols">
+
+  <!-- ============================ CONTROLS ============================ -->
+  <div class="rail">
+    <div class="ctl">
+      <h3>Start from</h3>
+      <div class="presets">
+        <button type="button" data-preset="today">Today</button>
+        <button type="button" data-preset="proposal">The proposal</button>
+      </div>
+    </div>
+
+    <div class="ctl">
+      <h3>The three changes</h3>
+
+      <div class="field">
+        <label for="mo"><span><span class="chg">1</span>Same-MO sequencing</span>
+          <span class="val" id="moVal">off</span></label>
+        <div class="seg" role="group" aria-label="Same-MO sequencing">
+          <button type="button" data-mo="0" aria-pressed="true">Off</button>
+          <button type="button" data-mo="1" aria-pressed="false">On</button>
+        </div>
+        <div class="hint">Put tables of the same MO back-to-back at one workstation,
+          same batch first, then different batches.</div>
+      </div>
+
+      <div class="field">
+        <label for="batches"><span><span class="chg">2</span>Batches per trolley</span>
+          <span class="val" id="batchVal">1</span></label>
+        <div class="seg" role="group" aria-label="Max batches per trolley">
+          <button type="button" data-batch="1" aria-pressed="true">1</button>
+          <button type="button" data-batch="2" aria-pressed="false">2</button>
+          <button type="button" data-batch="3" aria-pressed="false">3</button>
+        </div>
+        <div class="hint">Separate compartments, same MO and colour. 1 = today's rule.</div>
+        <div class="warn" id="batchWarn" hidden>
+          <strong>3 is not allowed on the floor.</strong> A trolley may carry at most
+          two fabric batches. Shown for comparison only.</div>
+      </div>
+
+      <div class="field">
+        <label for="hold"><span><span class="chg">3</span>WIP hold</span>
+          <span class="val" id="holdVal">off</span></label>
+        <input type="range" id="hold" min="0" max="6" step="1" value="0"
+               aria-label="WIP hold minutes">
+        <div class="hint">How long a part-filled trolley waits in CCT WIP for a later
+          table of the same MO, colour and film size.</div>
+      </div>
+
+      <div class="field" id="wsField">
+        <label><span>It comes back to</span><span class="val" id="wsVal">any workstation</span></label>
+        <div class="seg" role="group" aria-label="Which workstation the trolley returns to">
+          <button type="button" data-ws="0" aria-pressed="false">Same only</button>
+          <button type="button" data-ws="1" aria-pressed="true">Any</button>
+        </div>
+        <div class="hint">Whether a parked trolley may travel to a different
+          workstation. Nobody has costed how it physically gets there.</div>
+      </div>
+    </div>
+
+    <div class="ctl">
+      <h3>The fleet</h3>
+      <div class="field">
+        <label for="cycle"><span>Trolley round trip</span>
+          <span class="val" id="cycleVal">7 days</span></label>
+        <input type="range" id="cycle" min="3" max="10" step="0.5" value="7"
+               aria-label="Cycle days">
+        <div class="hint">5 days is the lead-time allowance. ~7 is the estimate of
+          what really happens — and it has never been measured.</div>
+      </div>
+      <div class="field">
+        <label for="fleet"><span>Trolleys owned</span>
+          <span class="val" id="fleetVal">1,200</span></label>
+        <input type="range" id="fleet" min="600" max="2200" step="50" value="1200"
+               aria-label="Fleet size">
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================= OUTPUT ============================= -->
+  <div>
+    <div class="verdict" id="verdict">
+      <div>
+        <div class="vlabel" id="vlabel">—</div>
+        <div class="vbig" id="vbig">—</div>
+        <div class="vsub" id="vsub"></div>
+      </div>
+      <div id="fleetDial"></div>
+    </div>
+
+    <div class="tiles">
+      <div class="tile"><div class="k">Trolley utilization</div>
+        <div class="v" id="tUtil">—</div><div class="d" id="dUtil"></div></div>
+      <div class="tile"><div class="k">Trolleys out per day</div>
+        <div class="v" id="tTpd">—</div><div class="d" id="dTpd"></div></div>
+      <div class="tile"><div class="k">Garments per trolley</div>
+        <div class="v" id="tPpt">—</div><div class="d" id="dPpt"></div></div>
+      <div class="tile"><div class="k">Cycle the fleet covers</div>
+        <div class="v" id="tCycle">—</div><div class="d" id="dCycle"></div></div>
+      <div class="tile"><div class="k">Avg wait in WIP</div>
+        <div class="v" id="tWait">—</div><div class="d" id="dWait"></div></div>
+    </div>
+
+    <div class="panel">
+      <h2>What one trolley looks like</h2>
+      <p class="sub">Utilization is compartments used &divide; 5. This is that number
+        drawn as the trolley it describes — filled compartments at the bottom,
+        empty space travelling for free at the top.</p>
+      <div class="split">
+        <div id="trolley"></div>
+        <div>
+          <div id="trolleyText" style="font-size:14px;line-height:1.65"></div>
+          <div class="legend">
+            <span><i style="background:var(--s2)"></i>Loaded</span>
+            <span><i style="background:var(--rule2)"></i>Empty — travelling for nothing</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Fleet needed against fleet owned</h2>
+      <p class="sub">A trolley dispatched today is gone for the whole round trip, so
+        the fleet has to cover that many days of dispatches at once.</p>
+      <div id="fleetChart"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Where these settings sit</h2>
+      <p class="sub">The four approval steps, each one the previous plus a single
+        change. Your current settings are marked if they match one.</p>
+      <div id="ladder"></div>
+    </div>
+
+    <footer id="footer"></footer>
+  </div>
+</div>
+</div>
+
+<script>
+const DATA = {"sweep":{"0|1|0|1":{"utilization_pct":54.44,"trolleys_per_day":225.1,"peak":312,"pieces_per_trolley":308.0,"avg_wait_hours":0.0,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":0},"0|1|30|0":{"utilization_pct":54.99,"trolleys_per_day":222.8,"peak":309,"pieces_per_trolley":311.0,"avg_wait_hours":0.72,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":0},"0|1|30|1":{"utilization_pct":60.13,"trolleys_per_day":203.8,"peak":280,"pieces_per_trolley":340.0,"avg_wait_hours":0.72,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":0},"0|1|60|0":{"utilization_pct":55.71,"trolleys_per_day":219.9,"peak":303,"pieces_per_trolley":315.0,"avg_wait_hours":1.22,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":0},"0|1|60|1":{"utilization_pct":64.78,"trolleys_per_day":189.2,"peak":259,"pieces_per_trolley":366.0,"avg_wait_hours":1.23,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":0},"0|1|90|0":{"utilization_pct":56.25,"trolleys_per_day":217.8,"peak":299,"pieces_per_trolley":318.0,"avg_wait_hours":1.73,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":0},"0|1|90|1":{"utilization_pct":67.85,"trolleys_per_day":180.6,"peak":243,"pieces_per_trolley":383.0,"avg_wait_hours":1.73,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":0},"0|1|120|0":{"utilization_pct":56.86,"trolleys_per_day":215.5,"peak":297,"pieces_per_trolley":321.0,"avg_wait_hours":2.21,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":16},"0|1|120|1":{"utilization_pct":70.59,"trolleys_per_day":173.6,"peak":234,"pieces_per_trolley":399.0,"avg_wait_hours":2.22,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":0},"0|1|180|0":{"utilization_pct":57.68,"trolleys_per_day":212.4,"peak":289,"pieces_per_trolley":326.0,"avg_wait_hours":3.23,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":131},"0|1|180|1":{"utilization_pct":73.69,"trolleys_per_day":166.3,"peak":230,"pieces_per_trolley":417.0,"avg_wait_hours":3.23,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":0},"0|1|240|0":{"utilization_pct":57.8,"trolleys_per_day":212.0,"peak":293,"pieces_per_trolley":327.0,"avg_wait_hours":4.22,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":365},"0|1|240|1":{"utilization_pct":76.37,"trolleys_per_day":160.4,"peak":217,"pieces_per_trolley":431.0,"avg_wait_hours":4.23,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":5},"0|2|0|1":{"utilization_pct":55.19,"trolleys_per_day":222.1,"peak":306,"pieces_per_trolley":312.0,"avg_wait_hours":0.0,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":0},"0|2|30|0":{"utilization_pct":55.37,"trolleys_per_day":221.3,"peak":303,"pieces_per_trolley":313.0,"avg_wait_hours":0.72,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":0},"0|2|30|1":{"utilization_pct":60.22,"trolleys_per_day":203.6,"peak":276,"pieces_per_trolley":340.0,"avg_wait_hours":0.72,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":0},"0|2|60|0":{"utilization_pct":55.89,"trolleys_per_day":219.3,"peak":302,"pieces_per_trolley":316.0,"avg_wait_hours":1.22,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":0},"0|2|60|1":{"utilization_pct":64.68,"trolleys_per_day":189.5,"peak":258,"pieces_per_trolley":366.0,"avg_wait_hours":1.23,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":0},"0|2|90|0":{"utilization_pct":56.42,"trolleys_per_day":217.2,"peak":298,"pieces_per_trolley":319.0,"avg_wait_hours":1.73,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":0},"0|2|90|1":{"utilization_pct":67.74,"trolleys_per_day":180.9,"peak":243,"pieces_per_trolley":383.0,"avg_wait_hours":1.73,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":0},"0|2|120|0":{"utilization_pct":56.96,"trolleys_per_day":215.2,"peak":296,"pieces_per_trolley":322.0,"avg_wait_hours":2.22,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":13},"0|2|120|1":{"utilization_pct":70.4,"trolleys_per_day":174.1,"peak":236,"pieces_per_trolley":398.0,"avg_wait_hours":2.22,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":0},"0|2|180|0":{"utilization_pct":57.71,"trolleys_per_day":212.4,"peak":288,"pieces_per_trolley":326.0,"avg_wait_hours":3.23,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":123},"0|2|180|1":{"utilization_pct":73.44,"trolleys_per_day":166.9,"peak":230,"pieces_per_trolley":415.0,"avg_wait_hours":3.23,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":0},"0|2|240|0":{"utilization_pct":57.95,"trolleys_per_day":211.5,"peak":292,"pieces_per_trolley":327.0,"avg_wait_hours":4.23,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":356},"0|2|240|1":{"utilization_pct":76.13,"trolleys_per_day":161.0,"peak":219,"pieces_per_trolley":430.0,"avg_wait_hours":4.25,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":11},"0|3|0|1":{"utilization_pct":55.19,"trolleys_per_day":222.1,"peak":306,"pieces_per_trolley":312.0,"avg_wait_hours":0.0,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":0},"0|3|30|0":{"utilization_pct":55.37,"trolleys_per_day":221.3,"peak":303,"pieces_per_trolley":313.0,"avg_wait_hours":0.72,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":0},"0|3|30|1":{"utilization_pct":60.22,"trolleys_per_day":203.6,"peak":276,"pieces_per_trolley":340.0,"avg_wait_hours":0.72,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":0},"0|3|60|0":{"utilization_pct":55.89,"trolleys_per_day":219.3,"peak":302,"pieces_per_trolley":316.0,"avg_wait_hours":1.22,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":0},"0|3|60|1":{"utilization_pct":64.68,"trolleys_per_day":189.5,"peak":258,"pieces_per_trolley":366.0,"avg_wait_hours":1.23,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":0},"0|3|90|0":{"utilization_pct":56.42,"trolleys_per_day":217.2,"peak":298,"pieces_per_trolley":319.0,"avg_wait_hours":1.73,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":0},"0|3|90|1":{"utilization_pct":67.74,"trolleys_per_day":180.9,"peak":243,"pieces_per_trolley":383.0,"avg_wait_hours":1.73,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":0},"0|3|120|0":{"utilization_pct":56.96,"trolleys_per_day":215.2,"peak":296,"pieces_per_trolley":322.0,"avg_wait_hours":2.22,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":13},"0|3|120|1":{"utilization_pct":70.4,"trolleys_per_day":174.1,"peak":236,"pieces_per_trolley":398.0,"avg_wait_hours":2.22,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":0},"0|3|180|0":{"utilization_pct":57.71,"trolleys_per_day":212.4,"peak":288,"pieces_per_trolley":326.0,"avg_wait_hours":3.23,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":123},"0|3|180|1":{"utilization_pct":73.44,"trolleys_per_day":166.9,"peak":230,"pieces_per_trolley":415.0,"avg_wait_hours":3.23,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":0},"0|3|240|0":{"utilization_pct":57.95,"trolleys_per_day":211.5,"peak":292,"pieces_per_trolley":327.0,"avg_wait_hours":4.23,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":356},"0|3|240|1":{"utilization_pct":76.13,"trolleys_per_day":161.0,"peak":219,"pieces_per_trolley":430.0,"avg_wait_hours":4.25,"spreading_blocked_pct":30.3,"cutting_blocked_pct":29.2,"blocked_by_space":11},"1|1|0|1":{"utilization_pct":59.39,"trolleys_per_day":200.3,"peak":263,"pieces_per_trolley":346.0,"avg_wait_hours":0.0,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":0},"1|1|30|0":{"utilization_pct":62.28,"trolleys_per_day":191.1,"peak":251,"pieces_per_trolley":361.0,"avg_wait_hours":0.76,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":0},"1|1|30|1":{"utilization_pct":66.23,"trolleys_per_day":179.7,"peak":240,"pieces_per_trolley":384.0,"avg_wait_hours":0.76,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":0},"1|1|60|0":{"utilization_pct":63.72,"trolleys_per_day":186.8,"peak":248,"pieces_per_trolley":369.0,"avg_wait_hours":1.25,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":0},"1|1|60|1":{"utilization_pct":71.14,"trolleys_per_day":167.2,"peak":220,"pieces_per_trolley":413.0,"avg_wait_hours":1.25,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":0},"1|1|90|0":{"utilization_pct":65.31,"trolleys_per_day":182.2,"peak":243,"pieces_per_trolley":378.0,"avg_wait_hours":1.75,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":0},"1|1|90|1":{"utilization_pct":74.53,"trolleys_per_day":159.7,"peak":209,"pieces_per_trolley":432.0,"avg_wait_hours":1.78,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":0},"1|1|120|0":{"utilization_pct":66.57,"trolleys_per_day":178.8,"peak":234,"pieces_per_trolley":386.0,"avg_wait_hours":2.26,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":0},"1|1|120|1":{"utilization_pct":76.18,"trolleys_per_day":156.2,"peak":205,"pieces_per_trolley":442.0,"avg_wait_hours":2.27,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":0},"1|1|180|0":{"utilization_pct":68.94,"trolleys_per_day":172.6,"peak":225,"pieces_per_trolley":401.0,"avg_wait_hours":3.28,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":12},"1|1|180|1":{"utilization_pct":78.23,"trolleys_per_day":152.1,"peak":203,"pieces_per_trolley":454.0,"avg_wait_hours":3.28,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":0},"1|1|240|0":{"utilization_pct":69.5,"trolleys_per_day":171.2,"peak":228,"pieces_per_trolley":404.0,"avg_wait_hours":4.27,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":95},"1|1|240|1":{"utilization_pct":78.98,"trolleys_per_day":150.7,"peak":201,"pieces_per_trolley":458.0,"avg_wait_hours":4.29,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":0},"1|2|0|1":{"utilization_pct":65.34,"trolleys_per_day":182.2,"peak":244,"pieces_per_trolley":379.0,"avg_wait_hours":0.0,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":0},"1|2|30|0":{"utilization_pct":65.61,"trolleys_per_day":181.4,"peak":244,"pieces_per_trolley":380.0,"avg_wait_hours":0.78,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":0},"1|2|30|1":{"utilization_pct":68.36,"trolleys_per_day":174.1,"peak":238,"pieces_per_trolley":396.0,"avg_wait_hours":0.79,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":0},"1|2|60|0":{"utilization_pct":65.95,"trolleys_per_day":180.4,"peak":243,"pieces_per_trolley":382.0,"avg_wait_hours":1.28,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":0},"1|2|60|1":{"utilization_pct":71.71,"trolleys_per_day":165.9,"peak":218,"pieces_per_trolley":416.0,"avg_wait_hours":1.28,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":0},"1|2|90|0":{"utilization_pct":66.49,"trolleys_per_day":179.0,"peak":241,"pieces_per_trolley":385.0,"avg_wait_hours":1.78,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":0},"1|2|90|1":{"utilization_pct":74.31,"trolleys_per_day":160.2,"peak":209,"pieces_per_trolley":431.0,"avg_wait_hours":1.8,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":0},"1|2|120|0":{"utilization_pct":67.14,"trolleys_per_day":177.2,"peak":235,"pieces_per_trolley":389.0,"avg_wait_hours":2.3,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":0},"1|2|120|1":{"utilization_pct":75.68,"trolleys_per_day":157.2,"peak":206,"pieces_per_trolley":439.0,"avg_wait_hours":2.3,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":0},"1|2|180|0":{"utilization_pct":68.79,"trolleys_per_day":173.0,"peak":226,"pieces_per_trolley":399.0,"avg_wait_hours":3.31,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":14},"1|2|180|1":{"utilization_pct":77.56,"trolleys_per_day":153.4,"peak":202,"pieces_per_trolley":450.0,"avg_wait_hours":3.32,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":0},"1|2|240|0":{"utilization_pct":69.52,"trolleys_per_day":171.2,"peak":225,"pieces_per_trolley":404.0,"avg_wait_hours":4.31,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":84},"1|2|240|1":{"utilization_pct":78.27,"trolleys_per_day":152.1,"peak":201,"pieces_per_trolley":454.0,"avg_wait_hours":4.33,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":0},"1|3|0|1":{"utilization_pct":65.34,"trolleys_per_day":182.2,"peak":244,"pieces_per_trolley":379.0,"avg_wait_hours":0.0,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":0},"1|3|30|0":{"utilization_pct":65.61,"trolleys_per_day":181.4,"peak":244,"pieces_per_trolley":380.0,"avg_wait_hours":0.78,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":0},"1|3|30|1":{"utilization_pct":68.36,"trolleys_per_day":174.1,"peak":238,"pieces_per_trolley":396.0,"avg_wait_hours":0.79,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":0},"1|3|60|0":{"utilization_pct":65.95,"trolleys_per_day":180.4,"peak":243,"pieces_per_trolley":382.0,"avg_wait_hours":1.28,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":0},"1|3|60|1":{"utilization_pct":71.71,"trolleys_per_day":165.9,"peak":218,"pieces_per_trolley":416.0,"avg_wait_hours":1.28,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":0},"1|3|90|0":{"utilization_pct":66.49,"trolleys_per_day":179.0,"peak":241,"pieces_per_trolley":385.0,"avg_wait_hours":1.78,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":0},"1|3|90|1":{"utilization_pct":74.31,"trolleys_per_day":160.2,"peak":209,"pieces_per_trolley":431.0,"avg_wait_hours":1.8,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":0},"1|3|120|0":{"utilization_pct":67.14,"trolleys_per_day":177.2,"peak":235,"pieces_per_trolley":389.0,"avg_wait_hours":2.3,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":0},"1|3|120|1":{"utilization_pct":75.68,"trolleys_per_day":157.2,"peak":206,"pieces_per_trolley":439.0,"avg_wait_hours":2.3,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":0},"1|3|180|0":{"utilization_pct":68.79,"trolleys_per_day":173.0,"peak":226,"pieces_per_trolley":399.0,"avg_wait_hours":3.31,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":14},"1|3|180|1":{"utilization_pct":77.56,"trolleys_per_day":153.4,"peak":202,"pieces_per_trolley":450.0,"avg_wait_hours":3.32,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":0},"1|3|240|0":{"utilization_pct":69.52,"trolleys_per_day":171.2,"peak":225,"pieces_per_trolley":404.0,"avg_wait_hours":4.31,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":84},"1|3|240|1":{"utilization_pct":78.27,"trolleys_per_day":152.1,"peak":201,"pieces_per_trolley":454.0,"avg_wait_hours":4.33,"spreading_blocked_pct":30.0,"cutting_blocked_pct":27.8,"blocked_by_space":0}},"assumptions":{"fleet_size":1200,"cycle_days_allowed":5,"cycle_days_estimated":7,"trolley_compartments":5,"compartment_cap":150,"max_batches_per_trolley":2,"trolley_bays":52,"wip_hold_minutes":60,"wip_hold_any_workstation":true},"headline":{"S0  Today":{"name":"S0  Today","util":54.44,"tpd":225.1,"settings":{"mo_aware_sequencing":false,"max_batches":1,"wip_hold_minutes":0,"hold_any_workstation":true}},"S1  + same-MO sequencing":{"name":"S1  + same-MO sequencing","util":59.39,"tpd":200.3,"settings":{"mo_aware_sequencing":true,"max_batches":1,"wip_hold_minutes":0,"hold_any_workstation":true}},"S2  + 2 batches per trolley":{"name":"S2  + 2 batches per trolley","util":65.34,"tpd":182.2,"settings":{"mo_aware_sequencing":true,"max_batches":2,"wip_hold_minutes":0,"hold_any_workstation":true}},"S3  + WIP hold":{"name":"S3  + WIP hold","util":71.71,"tpd":165.9,"settings":{"mo_aware_sequencing":true,"max_batches":2,"wip_hold_minutes":60,"hold_any_workstation":true}}},"holdMinutes":[0,30,60,90,120,180,240],"planDates":20,"tables":1863};
+const A = DATA.assumptions;
+const HOLDS = DATA.holdMinutes;
+
+const state = {
+  mo: 0, batches: 1, holdIdx: 0, anyWs: 1,
+  cycle: A.cycle_days_estimated, fleet: A.fleet_size,
+};
+
+const PRESETS = {
+  today:    {mo:0, batches:1, holdIdx:0, anyWs:1},
+  proposal: {mo:1, batches:2, holdIdx:HOLDS.indexOf(A.wip_hold_minutes), anyWs:A.wip_hold_any_workstation?1:0},
+};
+
+const $ = id => document.getElementById(id);
+const fmt = (n,d=0) => n.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+
+function key(mo, batches, hold, anyWs){
+  if (hold === 0) anyWs = 1;
+  return `${mo}|${batches}|${hold}|${anyWs}`;
+}
+function lookup(s){
+  return DATA.sweep[key(s.mo, s.batches, HOLDS[s.holdIdx], s.anyWs)];
+}
+const BASELINE = DATA.sweep[key(0,1,0,1)];
+
+/* ---------------------------------------------------------------- visuals */
+function trolleySvg(util){
+  // 5 compartments, filled from the bottom, in proportion to utilization
+  const used = util/100*5, W=170, H=210, x=26, w=118, top=16, ch=32, gap=4;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Trolley with ${(util/100*5).toFixed(2)} of 5 compartments loaded">`;
+  s += `<rect x="${x-8}" y="${top-8}" width="${w+16}" height="${5*(ch+gap)+12}" rx="5"
+         fill="none" stroke="var(--rule2)" stroke-width="2"/>`;
+  for (let i=0;i<5;i++){
+    const slot = 4-i;                                   // fill bottom-up
+    const y = top + slot*(ch+gap);
+    const f = Math.max(0, Math.min(1, used - i));
+    s += `<rect x="${x}" y="${y}" width="${w}" height="${ch}" rx="2"
+           fill="var(--panel2)" stroke="var(--rule2)" stroke-width="1"/>`;
+    if (f > 0.004){
+      s += `<rect class="compfill" x="${x+2}" y="${y+2}" width="${(w-4)*f}" height="${ch-4}"
+             rx="1.5" fill="var(--s2)"/>`;
+    }
+  }
+  const by = top + 5*(ch+gap) + 8;
+  s += `<rect x="${x-8}" y="${by}" width="${w+16}" height="4" rx="2" fill="var(--rule2)"/>`;
+  s += `<circle cx="${x+6}" cy="${by+12}" r="6" fill="none" stroke="var(--rule2)" stroke-width="2"/>`;
+  s += `<circle cx="${x+w-6}" cy="${by+12}" r="6" fill="none" stroke="var(--rule2)" stroke-width="2"/>`;
+  return s + '</svg>';
+}
+
+function fleetDial(required, fleet){
+  const r=52, c=2*Math.PI*r, pct=Math.min(1.35, required/fleet);
+  const over = required > fleet;
+  const col = over ? 'var(--bad)' : 'var(--s2)';
+  return `<svg viewBox="0 0 130 130" width="126" height="126" role="img"
+    aria-label="${fmt(required)} trolleys needed against ${fmt(fleet)} owned">
+    <circle cx="65" cy="65" r="${r}" fill="none" stroke="var(--rule2)" stroke-width="11"/>
+    <circle cx="65" cy="65" r="${r}" fill="none" stroke="${col}" stroke-width="11"
+      stroke-linecap="butt" stroke-dasharray="${Math.min(pct,1)*c} ${c}"
+      transform="rotate(-90 65 65)"/>
+    <text x="65" y="60" text-anchor="middle" class="num" font-size="21" font-weight="700"
+      fill="var(--ink)">${Math.round(required/fleet*100)}%</text>
+    <text x="65" y="77" text-anchor="middle" font-size="10" fill="var(--muted)">of fleet</text>
+  </svg>`;
+}
+
+function fleetChart(tpd, baseTpd, cycle, fleet){
+  const mine = tpd*cycle, base = baseTpd*cycle;
+  const col = mine > fleet ? 'bad' : 's2';
+  // When the sliders sit on today's rules the two bars are the same number —
+  // draw one row rather than two identical ones.
+  const rows = Math.abs(mine - base) < 1
+    ? [['Today — these settings', mine, col]]
+    : [['Today', base, 's1'], ['These settings', mine, col]];
+  const W=700, L=150, R=68, rowH=52, H=rows.length*rowH+30;
+  const vmax = Math.max(fleet, ...rows.map(r=>r[1]))*1.1;
+  const x = v => L + (W-L-R)*v/vmax;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Trolleys required versus fleet owned">`;
+  rows.forEach((row,i)=>{
+    const y = 14+i*rowH;
+    s += `<text x="0" y="${y+18}" font-size="12.5" font-weight="500" fill="var(--ink)">${row[0]}</text>`;
+    s += `<text x="0" y="${y+33}" font-size="10.5" class="num" fill="var(--muted)">${fmt(row[1]/cycle,0)}/day &#215; ${cycle}d</text>`;
+    s += `<rect x="${L}" y="${y}" width="${W-L-R}" height="24" rx="3" fill="var(--panel2)" stroke="var(--rule2)"/>`;
+    s += `<rect class="barfill" x="${L}" y="${y}" width="${Math.max(0,x(row[1])-L)}" height="24" rx="3" fill="var(--${row[2]})"/>`;
+    s += `<text x="${x(row[1])+8}" y="${y+17}" class="num" font-size="13" font-weight="600" fill="var(--ink)">${fmt(row[1])}</text>`;
+  });
+  s += `<line x1="${x(fleet)}" x2="${x(fleet)}" y1="4" y2="${H-22}" stroke="var(--ink)"
+         stroke-width="1.5" stroke-dasharray="4 3" opacity=".5"/>`;
+  s += `<text x="${x(fleet)}" y="${H-8}" text-anchor="middle" class="num" font-size="10.5"
+         fill="var(--ink)" opacity=".75">owned: ${fmt(fleet)}</text>`;
+  return s+'</svg>';
+}
+const over = (a,b)=>a>b;
+
+function ladder(cur){
+  const steps = Object.values(DATA.headline);
+  const W=700, BX=214, VW=68, H=steps.length*46+8;
+  const bw = W - BX - VW;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Utilization by approval step">`;
+  steps.forEach((st,i)=>{
+    const y = i*46+6;
+    const isCur = st.settings.mo_aware_sequencing===!!cur.mo
+      && st.settings.max_batches===cur.batches
+      && st.settings.wip_hold_minutes===HOLDS[cur.holdIdx]
+      && (HOLDS[cur.holdIdx]===0 || st.settings.hold_any_workstation===!!cur.anyWs);
+    const col = isCur ? 'var(--s3)' : 'var(--s1)';
+    s += `<text x="0" y="${y+18}" font-size="12.5" font-weight="${isCur?600:400}"
+           fill="var(--ink)">${st.name.replace(/^S\d+\s+/,'')}</text>`;
+    // "you are here" lives in the label column, where it can never be clipped
+    s += `<text x="0" y="${y+32}" font-size="10" class="num"
+           fill="${isCur?'var(--s3)':'var(--muted)'}" font-weight="${isCur?600:400}">`
+       + `${st.name.split(' ')[0]}${isCur?' &#183; you are here':''}</text>`;
+    s += `<rect x="${BX}" y="${y+2}" width="${bw}" height="22" rx="3"
+           fill="var(--panel2)" stroke="var(--rule2)"/>`;
+    s += `<rect x="${BX}" y="${y+2}" width="${bw*st.util/100}" height="22" rx="3" fill="${col}"/>`;
+    // direct label on every bar — required relief for the amber's contrast
+    s += `<text x="${BX+bw+8}" y="${y+18}" class="num" font-size="12.5"
+           font-weight="600" fill="var(--ink)">${st.util.toFixed(1)}%</text>`;
+  });
+  return s+'</svg>';
+}
+
+/* ------------------------------------------------------------------ render */
+function render(){
+  const r = lookup(state);
+  const cycle = state.cycle, fleet = state.fleet;
+  const required = r.trolleys_per_day * cycle;
+  const spare = fleet - required;
+  const short = spare < 0;
+
+  // verdict
+  const v = $('verdict');
+  v.className = 'verdict ' + (short ? 'short' : 'ok');
+  $('vlabel').textContent = short ? 'The fleet does not cover this' : 'The fleet covers this';
+  $('vbig').textContent = fmt(required) + ' trolleys needed';
+  $('vsub').innerHTML = short
+    ? `At <b>${fmt(r.trolleys_per_day,0)} trolleys a day</b> and a <b>${cycle}-day</b> round trip,
+       Central Cutting needs ${fmt(required)} trolleys in circulation. You own
+       ${fmt(fleet)} — <b>${fmt(-spare)} short</b>.`
+    : `At <b>${fmt(r.trolleys_per_day,0)} trolleys a day</b> and a <b>${cycle}-day</b> round trip,
+       ${fmt(required)} trolleys stay in circulation — <b>${fmt(spare)} spare</b> inside the
+       ${fmt(fleet)} you own.`;
+  $('fleetDial').innerHTML = fleetDial(required, fleet);
+
+  // tiles
+  const d = (now, was, better, unit='', dec=1) => {
+    const diff = now - was;
+    if (Math.abs(diff) < 0.05) return ['vs today: no change',''];
+    const good = better === 'up' ? diff > 0 : diff < 0;
+    return [`vs today: ${diff>0?'+':''}${fmt(diff,dec)}${unit}`, good?'up':'down'];
+  };
+  const set = (tid, did, val, tuple) => {
+    $(tid).innerHTML = val;
+    $(did).textContent = tuple[0];
+    $(did).className = 'd ' + tuple[1];
+  };
+  set('tUtil','dUtil', r.utilization_pct.toFixed(1)+'<em>%</em>',
+      d(r.utilization_pct, BASELINE.utilization_pct, 'up', ' pt'));
+  set('tTpd','dTpd', fmt(r.trolleys_per_day,0),
+      d(r.trolleys_per_day, BASELINE.trolleys_per_day, 'down', '', 0));
+  set('tPpt','dPpt', fmt(r.pieces_per_trolley,0),
+      d(r.pieces_per_trolley, BASELINE.pieces_per_trolley, 'up', '', 0));
+  const cyc = fleet / r.trolleys_per_day, baseCyc = fleet / BASELINE.trolleys_per_day;
+  set('tCycle','dCycle', cyc.toFixed(1)+'<em> days</em>',
+      d(cyc, baseCyc, 'up', ' d'));
+  set('tWait','dWait',
+      r.avg_wait_hours > 0 ? r.avg_wait_hours.toFixed(1)+'<em> h</em>' : '<em>none</em>',
+      ['trolleys are not held', '']);
+  if (r.avg_wait_hours > 0){
+    $('dWait').textContent = `${fmt(HOLDS[state.holdIdx])} min allowed`;
+  }
+
+  // trolley
+  $('trolley').innerHTML = trolleySvg(r.utilization_pct);
+  const usedComp = r.utilization_pct/100*5;
+  $('trolleyText').innerHTML =
+    `<b>${usedComp.toFixed(2)} of 5 compartments</b> carry panels, on average, on every
+     trolley that leaves Central Cutting.<br><br>
+     That is <b>${fmt(r.pieces_per_trolley,0)} garments</b> per trolley against a
+     ${fmt(A.trolley_compartments*A.compartment_cap)} ceiling. The remaining
+     <b>${(5-usedComp).toFixed(2)} compartments</b> travel the full
+     ${cycle}-day round trip empty.`;
+
+  $('fleetChart').innerHTML = fleetChart(r.trolleys_per_day, BASELINE.trolleys_per_day, cycle, fleet);
+  $('ladder').innerHTML = ladder(state);
+
+  // control labels
+  $('moVal').textContent = state.mo ? 'on' : 'off';
+  $('batchVal').textContent = state.batches;
+  $('holdVal').textContent = HOLDS[state.holdIdx] === 0 ? 'off' : HOLDS[state.holdIdx] + ' min';
+  $('wsVal').textContent = state.anyWs ? 'any workstation' : 'same only';
+  $('cycleVal').textContent = cycle + ' days';
+  $('fleetVal').textContent = fmt(fleet);
+  $('batchWarn').hidden = state.batches !== 3;
+  $('wsField').style.opacity = HOLDS[state.holdIdx] === 0 ? .4 : 1;
+  $('wsField').querySelectorAll('button').forEach(b => b.disabled = HOLDS[state.holdIdx] === 0);
+
+  document.querySelectorAll('[data-mo]').forEach(b =>
+    b.setAttribute('aria-pressed', String(+b.dataset.mo === state.mo)));
+  document.querySelectorAll('[data-batch]').forEach(b =>
+    b.setAttribute('aria-pressed', String(+b.dataset.batch === state.batches)));
+  document.querySelectorAll('[data-ws]').forEach(b =>
+    b.setAttribute('aria-pressed', String(+b.dataset.ws === state.anyWs)));
+
+  $('footer').innerHTML =
+    `${DATA.planDates} plan dates &middot; ${fmt(DATA.tables)} tables &middot;
+     ${fmt(DATA.tables/DATA.planDates,0)} a day. Trolley utilization is compartments
+     used &divide; ${A.trolley_compartments} (rule H6), pooled across all days.
+     A trolley may carry at most ${A.max_batches_per_trolley} fabric batches, and no
+     more than ${A.trolley_bays} may be parked and waiting at once (rule H7).
+     The ${A.cycle_days_estimated}-day round trip is an <b>estimate, not a measurement</b> —
+     it is the number this whole page is most sensitive to.<br><br>
+     Every value here comes from <code>assumptions.py</code>. Change one, re-run
+     <code>python run.py</code>, and this page updates.`;
+}
+
+/* ------------------------------------------------------------------ wiring */
+$('hold').addEventListener('input', e => { state.holdIdx = +e.target.value; render(); });
+$('cycle').addEventListener('input', e => { state.cycle = +e.target.value; render(); });
+$('fleet').addEventListener('input', e => { state.fleet = +e.target.value; render(); });
+
+document.querySelectorAll('[data-mo]').forEach(b =>
+  b.addEventListener('click', () => { state.mo = +b.dataset.mo; render(); }));
+document.querySelectorAll('[data-batch]').forEach(b =>
+  b.addEventListener('click', () => { state.batches = +b.dataset.batch; render(); }));
+document.querySelectorAll('[data-ws]').forEach(b =>
+  b.addEventListener('click', () => { state.anyWs = +b.dataset.ws; render(); }));
+
+document.querySelectorAll('[data-preset]').forEach(b =>
+  b.addEventListener('click', () => {
+    Object.assign(state, PRESETS[b.dataset.preset]);
+    $('hold').value = state.holdIdx;
+    render();
+  }));
+
+$('themeBtn').addEventListener('click', () => {
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark'
+    || (!document.documentElement.getAttribute('data-theme')
+        && matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.setAttribute('data-theme', dark ? 'light' : 'dark');
+  $('themeBtn').textContent = dark ? 'Dark mode' : 'Light mode';
+});
+
+$('srcline').textContent =
+  `${DATA.planDates} plan dates · ${DATA.tables.toLocaleString()} tables · `
+  + `simulated from data/planppc.xlsx`;
+
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,795 @@
+{
+ "sweep": {
+  "0|1|0|1": {
+   "utilization_pct": 54.44,
+   "trolleys_per_day": 225.1,
+   "peak": 312,
+   "pieces_per_trolley": 308.0,
+   "avg_wait_hours": 0.0,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 0
+  },
+  "0|1|30|0": {
+   "utilization_pct": 54.99,
+   "trolleys_per_day": 222.8,
+   "peak": 309,
+   "pieces_per_trolley": 311.0,
+   "avg_wait_hours": 0.72,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 0
+  },
+  "0|1|30|1": {
+   "utilization_pct": 60.13,
+   "trolleys_per_day": 203.8,
+   "peak": 280,
+   "pieces_per_trolley": 340.0,
+   "avg_wait_hours": 0.72,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 0
+  },
+  "0|1|60|0": {
+   "utilization_pct": 55.71,
+   "trolleys_per_day": 219.9,
+   "peak": 303,
+   "pieces_per_trolley": 315.0,
+   "avg_wait_hours": 1.22,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 0
+  },
+  "0|1|60|1": {
+   "utilization_pct": 64.78,
+   "trolleys_per_day": 189.2,
+   "peak": 259,
+   "pieces_per_trolley": 366.0,
+   "avg_wait_hours": 1.23,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 0
+  },
+  "0|1|90|0": {
+   "utilization_pct": 56.25,
+   "trolleys_per_day": 217.8,
+   "peak": 299,
+   "pieces_per_trolley": 318.0,
+   "avg_wait_hours": 1.73,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 0
+  },
+  "0|1|90|1": {
+   "utilization_pct": 67.85,
+   "trolleys_per_day": 180.6,
+   "peak": 243,
+   "pieces_per_trolley": 383.0,
+   "avg_wait_hours": 1.73,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 0
+  },
+  "0|1|120|0": {
+   "utilization_pct": 56.86,
+   "trolleys_per_day": 215.5,
+   "peak": 297,
+   "pieces_per_trolley": 321.0,
+   "avg_wait_hours": 2.21,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 16
+  },
+  "0|1|120|1": {
+   "utilization_pct": 70.59,
+   "trolleys_per_day": 173.6,
+   "peak": 234,
+   "pieces_per_trolley": 399.0,
+   "avg_wait_hours": 2.22,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 0
+  },
+  "0|1|180|0": {
+   "utilization_pct": 57.68,
+   "trolleys_per_day": 212.4,
+   "peak": 289,
+   "pieces_per_trolley": 326.0,
+   "avg_wait_hours": 3.23,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 131
+  },
+  "0|1|180|1": {
+   "utilization_pct": 73.69,
+   "trolleys_per_day": 166.3,
+   "peak": 230,
+   "pieces_per_trolley": 417.0,
+   "avg_wait_hours": 3.23,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 0
+  },
+  "0|1|240|0": {
+   "utilization_pct": 57.8,
+   "trolleys_per_day": 212.0,
+   "peak": 293,
+   "pieces_per_trolley": 327.0,
+   "avg_wait_hours": 4.22,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 365
+  },
+  "0|1|240|1": {
+   "utilization_pct": 76.37,
+   "trolleys_per_day": 160.4,
+   "peak": 217,
+   "pieces_per_trolley": 431.0,
+   "avg_wait_hours": 4.23,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 5
+  },
+  "0|2|0|1": {
+   "utilization_pct": 55.19,
+   "trolleys_per_day": 222.1,
+   "peak": 306,
+   "pieces_per_trolley": 312.0,
+   "avg_wait_hours": 0.0,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 0
+  },
+  "0|2|30|0": {
+   "utilization_pct": 55.37,
+   "trolleys_per_day": 221.3,
+   "peak": 303,
+   "pieces_per_trolley": 313.0,
+   "avg_wait_hours": 0.72,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 0
+  },
+  "0|2|30|1": {
+   "utilization_pct": 60.22,
+   "trolleys_per_day": 203.6,
+   "peak": 276,
+   "pieces_per_trolley": 340.0,
+   "avg_wait_hours": 0.72,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 0
+  },
+  "0|2|60|0": {
+   "utilization_pct": 55.89,
+   "trolleys_per_day": 219.3,
+   "peak": 302,
+   "pieces_per_trolley": 316.0,
+   "avg_wait_hours": 1.22,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 0
+  },
+  "0|2|60|1": {
+   "utilization_pct": 64.68,
+   "trolleys_per_day": 189.5,
+   "peak": 258,
+   "pieces_per_trolley": 366.0,
+   "avg_wait_hours": 1.23,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 0
+  },
+  "0|2|90|0": {
+   "utilization_pct": 56.42,
+   "trolleys_per_day": 217.2,
+   "peak": 298,
+   "pieces_per_trolley": 319.0,
+   "avg_wait_hours": 1.73,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 0
+  },
+  "0|2|90|1": {
+   "utilization_pct": 67.74,
+   "trolleys_per_day": 180.9,
+   "peak": 243,
+   "pieces_per_trolley": 383.0,
+   "avg_wait_hours": 1.73,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 0
+  },
+  "0|2|120|0": {
+   "utilization_pct": 56.96,
+   "trolleys_per_day": 215.2,
+   "peak": 296,
+   "pieces_per_trolley": 322.0,
+   "avg_wait_hours": 2.22,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 13
+  },
+  "0|2|120|1": {
+   "utilization_pct": 70.4,
+   "trolleys_per_day": 174.1,
+   "peak": 236,
+   "pieces_per_trolley": 398.0,
+   "avg_wait_hours": 2.22,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 0
+  },
+  "0|2|180|0": {
+   "utilization_pct": 57.71,
+   "trolleys_per_day": 212.4,
+   "peak": 288,
+   "pieces_per_trolley": 326.0,
+   "avg_wait_hours": 3.23,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 123
+  },
+  "0|2|180|1": {
+   "utilization_pct": 73.44,
+   "trolleys_per_day": 166.9,
+   "peak": 230,
+   "pieces_per_trolley": 415.0,
+   "avg_wait_hours": 3.23,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 0
+  },
+  "0|2|240|0": {
+   "utilization_pct": 57.95,
+   "trolleys_per_day": 211.5,
+   "peak": 292,
+   "pieces_per_trolley": 327.0,
+   "avg_wait_hours": 4.23,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 356
+  },
+  "0|2|240|1": {
+   "utilization_pct": 76.13,
+   "trolleys_per_day": 161.0,
+   "peak": 219,
+   "pieces_per_trolley": 430.0,
+   "avg_wait_hours": 4.25,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 11
+  },
+  "0|3|0|1": {
+   "utilization_pct": 55.19,
+   "trolleys_per_day": 222.1,
+   "peak": 306,
+   "pieces_per_trolley": 312.0,
+   "avg_wait_hours": 0.0,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 0
+  },
+  "0|3|30|0": {
+   "utilization_pct": 55.37,
+   "trolleys_per_day": 221.3,
+   "peak": 303,
+   "pieces_per_trolley": 313.0,
+   "avg_wait_hours": 0.72,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 0
+  },
+  "0|3|30|1": {
+   "utilization_pct": 60.22,
+   "trolleys_per_day": 203.6,
+   "peak": 276,
+   "pieces_per_trolley": 340.0,
+   "avg_wait_hours": 0.72,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 0
+  },
+  "0|3|60|0": {
+   "utilization_pct": 55.89,
+   "trolleys_per_day": 219.3,
+   "peak": 302,
+   "pieces_per_trolley": 316.0,
+   "avg_wait_hours": 1.22,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 0
+  },
+  "0|3|60|1": {
+   "utilization_pct": 64.68,
+   "trolleys_per_day": 189.5,
+   "peak": 258,
+   "pieces_per_trolley": 366.0,
+   "avg_wait_hours": 1.23,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 0
+  },
+  "0|3|90|0": {
+   "utilization_pct": 56.42,
+   "trolleys_per_day": 217.2,
+   "peak": 298,
+   "pieces_per_trolley": 319.0,
+   "avg_wait_hours": 1.73,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 0
+  },
+  "0|3|90|1": {
+   "utilization_pct": 67.74,
+   "trolleys_per_day": 180.9,
+   "peak": 243,
+   "pieces_per_trolley": 383.0,
+   "avg_wait_hours": 1.73,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 0
+  },
+  "0|3|120|0": {
+   "utilization_pct": 56.96,
+   "trolleys_per_day": 215.2,
+   "peak": 296,
+   "pieces_per_trolley": 322.0,
+   "avg_wait_hours": 2.22,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 13
+  },
+  "0|3|120|1": {
+   "utilization_pct": 70.4,
+   "trolleys_per_day": 174.1,
+   "peak": 236,
+   "pieces_per_trolley": 398.0,
+   "avg_wait_hours": 2.22,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 0
+  },
+  "0|3|180|0": {
+   "utilization_pct": 57.71,
+   "trolleys_per_day": 212.4,
+   "peak": 288,
+   "pieces_per_trolley": 326.0,
+   "avg_wait_hours": 3.23,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 123
+  },
+  "0|3|180|1": {
+   "utilization_pct": 73.44,
+   "trolleys_per_day": 166.9,
+   "peak": 230,
+   "pieces_per_trolley": 415.0,
+   "avg_wait_hours": 3.23,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 0
+  },
+  "0|3|240|0": {
+   "utilization_pct": 57.95,
+   "trolleys_per_day": 211.5,
+   "peak": 292,
+   "pieces_per_trolley": 327.0,
+   "avg_wait_hours": 4.23,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 356
+  },
+  "0|3|240|1": {
+   "utilization_pct": 76.13,
+   "trolleys_per_day": 161.0,
+   "peak": 219,
+   "pieces_per_trolley": 430.0,
+   "avg_wait_hours": 4.25,
+   "spreading_blocked_pct": 30.3,
+   "cutting_blocked_pct": 29.2,
+   "blocked_by_space": 11
+  },
+  "1|1|0|1": {
+   "utilization_pct": 59.39,
+   "trolleys_per_day": 200.3,
+   "peak": 263,
+   "pieces_per_trolley": 346.0,
+   "avg_wait_hours": 0.0,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 0
+  },
+  "1|1|30|0": {
+   "utilization_pct": 62.28,
+   "trolleys_per_day": 191.1,
+   "peak": 251,
+   "pieces_per_trolley": 361.0,
+   "avg_wait_hours": 0.76,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 0
+  },
+  "1|1|30|1": {
+   "utilization_pct": 66.23,
+   "trolleys_per_day": 179.7,
+   "peak": 240,
+   "pieces_per_trolley": 384.0,
+   "avg_wait_hours": 0.76,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 0
+  },
+  "1|1|60|0": {
+   "utilization_pct": 63.72,
+   "trolleys_per_day": 186.8,
+   "peak": 248,
+   "pieces_per_trolley": 369.0,
+   "avg_wait_hours": 1.25,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 0
+  },
+  "1|1|60|1": {
+   "utilization_pct": 71.14,
+   "trolleys_per_day": 167.2,
+   "peak": 220,
+   "pieces_per_trolley": 413.0,
+   "avg_wait_hours": 1.25,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 0
+  },
+  "1|1|90|0": {
+   "utilization_pct": 65.31,
+   "trolleys_per_day": 182.2,
+   "peak": 243,
+   "pieces_per_trolley": 378.0,
+   "avg_wait_hours": 1.75,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 0
+  },
+  "1|1|90|1": {
+   "utilization_pct": 74.53,
+   "trolleys_per_day": 159.7,
+   "peak": 209,
+   "pieces_per_trolley": 432.0,
+   "avg_wait_hours": 1.78,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 0
+  },
+  "1|1|120|0": {
+   "utilization_pct": 66.57,
+   "trolleys_per_day": 178.8,
+   "peak": 234,
+   "pieces_per_trolley": 386.0,
+   "avg_wait_hours": 2.26,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 0
+  },
+  "1|1|120|1": {
+   "utilization_pct": 76.18,
+   "trolleys_per_day": 156.2,
+   "peak": 205,
+   "pieces_per_trolley": 442.0,
+   "avg_wait_hours": 2.27,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 0
+  },
+  "1|1|180|0": {
+   "utilization_pct": 68.94,
+   "trolleys_per_day": 172.6,
+   "peak": 225,
+   "pieces_per_trolley": 401.0,
+   "avg_wait_hours": 3.28,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 12
+  },
+  "1|1|180|1": {
+   "utilization_pct": 78.23,
+   "trolleys_per_day": 152.1,
+   "peak": 203,
+   "pieces_per_trolley": 454.0,
+   "avg_wait_hours": 3.28,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 0
+  },
+  "1|1|240|0": {
+   "utilization_pct": 69.5,
+   "trolleys_per_day": 171.2,
+   "peak": 228,
+   "pieces_per_trolley": 404.0,
+   "avg_wait_hours": 4.27,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 95
+  },
+  "1|1|240|1": {
+   "utilization_pct": 78.98,
+   "trolleys_per_day": 150.7,
+   "peak": 201,
+   "pieces_per_trolley": 458.0,
+   "avg_wait_hours": 4.29,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 0
+  },
+  "1|2|0|1": {
+   "utilization_pct": 65.34,
+   "trolleys_per_day": 182.2,
+   "peak": 244,
+   "pieces_per_trolley": 379.0,
+   "avg_wait_hours": 0.0,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 0
+  },
+  "1|2|30|0": {
+   "utilization_pct": 65.61,
+   "trolleys_per_day": 181.4,
+   "peak": 244,
+   "pieces_per_trolley": 380.0,
+   "avg_wait_hours": 0.78,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 0
+  },
+  "1|2|30|1": {
+   "utilization_pct": 68.36,
+   "trolleys_per_day": 174.1,
+   "peak": 238,
+   "pieces_per_trolley": 396.0,
+   "avg_wait_hours": 0.79,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 0
+  },
+  "1|2|60|0": {
+   "utilization_pct": 65.95,
+   "trolleys_per_day": 180.4,
+   "peak": 243,
+   "pieces_per_trolley": 382.0,
+   "avg_wait_hours": 1.28,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 0
+  },
+  "1|2|60|1": {
+   "utilization_pct": 71.71,
+   "trolleys_per_day": 165.9,
+   "peak": 218,
+   "pieces_per_trolley": 416.0,
+   "avg_wait_hours": 1.28,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 0
+  },
+  "1|2|90|0": {
+   "utilization_pct": 66.49,
+   "trolleys_per_day": 179.0,
+   "peak": 241,
+   "pieces_per_trolley": 385.0,
+   "avg_wait_hours": 1.78,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 0
+  },
+  "1|2|90|1": {
+   "utilization_pct": 74.31,
+   "trolleys_per_day": 160.2,
+   "peak": 209,
+   "pieces_per_trolley": 431.0,
+   "avg_wait_hours": 1.8,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 0
+  },
+  "1|2|120|0": {
+   "utilization_pct": 67.14,
+   "trolleys_per_day": 177.2,
+   "peak": 235,
+   "pieces_per_trolley": 389.0,
+   "avg_wait_hours": 2.3,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 0
+  },
+  "1|2|120|1": {
+   "utilization_pct": 75.68,
+   "trolleys_per_day": 157.2,
+   "peak": 206,
+   "pieces_per_trolley": 439.0,
+   "avg_wait_hours": 2.3,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 0
+  },
+  "1|2|180|0": {
+   "utilization_pct": 68.79,
+   "trolleys_per_day": 173.0,
+   "peak": 226,
+   "pieces_per_trolley": 399.0,
+   "avg_wait_hours": 3.31,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 14
+  },
+  "1|2|180|1": {
+   "utilization_pct": 77.56,
+   "trolleys_per_day": 153.4,
+   "peak": 202,
+   "pieces_per_trolley": 450.0,
+   "avg_wait_hours": 3.32,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 0
+  },
+  "1|2|240|0": {
+   "utilization_pct": 69.52,
+   "trolleys_per_day": 171.2,
+   "peak": 225,
+   "pieces_per_trolley": 404.0,
+   "avg_wait_hours": 4.31,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 84
+  },
+  "1|2|240|1": {
+   "utilization_pct": 78.27,
+   "trolleys_per_day": 152.1,
+   "peak": 201,
+   "pieces_per_trolley": 454.0,
+   "avg_wait_hours": 4.33,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 0
+  },
+  "1|3|0|1": {
+   "utilization_pct": 65.34,
+   "trolleys_per_day": 182.2,
+   "peak": 244,
+   "pieces_per_trolley": 379.0,
+   "avg_wait_hours": 0.0,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 0
+  },
+  "1|3|30|0": {
+   "utilization_pct": 65.61,
+   "trolleys_per_day": 181.4,
+   "peak": 244,
+   "pieces_per_trolley": 380.0,
+   "avg_wait_hours": 0.78,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 0
+  },
+  "1|3|30|1": {
+   "utilization_pct": 68.36,
+   "trolleys_per_day": 174.1,
+   "peak": 238,
+   "pieces_per_trolley": 396.0,
+   "avg_wait_hours": 0.79,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 0
+  },
+  "1|3|60|0": {
+   "utilization_pct": 65.95,
+   "trolleys_per_day": 180.4,
+   "peak": 243,
+   "pieces_per_trolley": 382.0,
+   "avg_wait_hours": 1.28,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 0
+  },
+  "1|3|60|1": {
+   "utilization_pct": 71.71,
+   "trolleys_per_day": 165.9,
+   "peak": 218,
+   "pieces_per_trolley": 416.0,
+   "avg_wait_hours": 1.28,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 0
+  },
+  "1|3|90|0": {
+   "utilization_pct": 66.49,
+   "trolleys_per_day": 179.0,
+   "peak": 241,
+   "pieces_per_trolley": 385.0,
+   "avg_wait_hours": 1.78,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 0
+  },
+  "1|3|90|1": {
+   "utilization_pct": 74.31,
+   "trolleys_per_day": 160.2,
+   "peak": 209,
+   "pieces_per_trolley": 431.0,
+   "avg_wait_hours": 1.8,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 0
+  },
+  "1|3|120|0": {
+   "utilization_pct": 67.14,
+   "trolleys_per_day": 177.2,
+   "peak": 235,
+   "pieces_per_trolley": 389.0,
+   "avg_wait_hours": 2.3,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 0
+  },
+  "1|3|120|1": {
+   "utilization_pct": 75.68,
+   "trolleys_per_day": 157.2,
+   "peak": 206,
+   "pieces_per_trolley": 439.0,
+   "avg_wait_hours": 2.3,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 0
+  },
+  "1|3|180|0": {
+   "utilization_pct": 68.79,
+   "trolleys_per_day": 173.0,
+   "peak": 226,
+   "pieces_per_trolley": 399.0,
+   "avg_wait_hours": 3.31,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 14
+  },
+  "1|3|180|1": {
+   "utilization_pct": 77.56,
+   "trolleys_per_day": 153.4,
+   "peak": 202,
+   "pieces_per_trolley": 450.0,
+   "avg_wait_hours": 3.32,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 0
+  },
+  "1|3|240|0": {
+   "utilization_pct": 69.52,
+   "trolleys_per_day": 171.2,
+   "peak": 225,
+   "pieces_per_trolley": 404.0,
+   "avg_wait_hours": 4.31,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 84
+  },
+  "1|3|240|1": {
+   "utilization_pct": 78.27,
+   "trolleys_per_day": 152.1,
+   "peak": 201,
+   "pieces_per_trolley": 454.0,
+   "avg_wait_hours": 4.33,
+   "spreading_blocked_pct": 30.0,
+   "cutting_blocked_pct": 27.8,
+   "blocked_by_space": 0
+  }
+ },
+ "assumptions": {
+  "fleet_size": 1200,
+  "cycle_days_allowed": 5,
+  "cycle_days_estimated": 7,
+  "trolley_compartments": 5,
+  "compartment_cap": 150,
+  "max_batches_per_trolley": 2,
+  "trolley_bays": 52,
+  "wip_hold_minutes": 60,
+  "wip_hold_any_workstation": true
+ }
+}

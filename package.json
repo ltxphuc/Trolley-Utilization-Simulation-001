@@ -1,0 +1,25 @@
+{
+  "name": "cct-trolley-model",
+  "version": "1.0.0",
+  "description": "A simulation of Central Cutting's Job Sequence and Panel Loading, run against real HaveCut data. The built site is scoped to April-June 2026 (79 plan dates, 6,501 tables, ~82 a day); regress/idle_variants see the full Jan-Aug file (199 dates).",
+  "main": "index.js",
+  "scripts": {
+    "build": "node --max-old-space-size=6144 tools/build.js",
+    "regress": "node --max-old-space-size=6144 tools/regress.js",
+    "parity": "node tools/parity_check.js",
+    "idle": "node --max-old-space-size=6144 tools/idle_variants.js",
+    "tc": "node --max-old-space-size=6144 tools/tc_table.js",
+    "lab": "node --max-old-space-size=6144 tools/lab_table.js",
+    "beforeafter": "node --max-old-space-size=6144 tools/before_after.js",
+    "carryprobe": "node --max-old-space-size=6144 tools/carryover_probe.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "jsdom": "^30.0.1",
+    "xlsx": "^0.18.5"
+  }
+}
