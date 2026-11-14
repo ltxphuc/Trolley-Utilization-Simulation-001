@@ -42,6 +42,10 @@ function makeConfig(A) {
     bays: A.TROLLEY_BAYS,
     maxBatches: A.MAX_BATCHES_PER_TROLLEY,
     cutGroups: A.CUT_GROUPS,
+    // the what-ifs moved from the Simulation tab (2026-11-14): cutter count and table length. Part of
+    // the SELECTION only: S0 (ladder()) never gets them, so S0 stays at today's floor (5 cutters, 21.2 m).
+    cutGroupsByCount: A.CUT_GROUPS_BY_CUTTER_COUNT, cutterCounts: A.SIM_CUTTER_COUNTS,
+    tableOptionsM: A.LAB_TABLE_LENGTHS_M, yardsPerMetre: A.YARDS_PER_METRE,
     flex: A.FLEXIBLE_CUT,
     nightSpreaders: Array.from(A.NIGHT_SHIFT_SPREADERS),
     nightCutters: Array.from(A.NIGHT_SHIFT_CUTTERS),
@@ -67,6 +71,7 @@ function makeConfig(A) {
       // the live floor (A.LIVE_FLOOR) waits for fabric relaxing (ESTIMATE) and the marker; live: false is the floor of 2026-11-09
       live: A.LIVE_FLOOR, relax: A.LIVE_FLOOR, relaxMinH: A.RELAX_ARRIVAL_LEAD_MIN_H, relaxMaxH: A.RELAX_ARRIVAL_LEAD_MAX_H,
       setupMin: A.CUT_SETUP_MO_COLOR_MINUTES, travelMin: A.CUT_TRAVEL_MINUTES, pullAhead: 0,
+      cutters: A.CUTTER_COUNT, tableM: A.SPREADING_TABLE_LENGTH_M,
     },
     // What each add-on is set to when it is switched on (ESTIMATES).
     addOnValues: {
@@ -171,27 +176,27 @@ function createEngine(cfg) {
   }
 
   // ---------------------------------------------- G6 table length (model.js)
-  function freeLength(lays, when) {
+  function freeLength(lays, when, L) {
     let used = 0;
     for (const [length, cs, ce] of lays) {
       if (when >= ce) continue;
       if (when <= cs || ce <= cs) used += length;
       else used += length * (ce - when) / (ce - cs);
     }
-    return cfg.tableLength - used;
+    return L - used;
   }
-  function roomAt(lays, earliest, need) {
-    if (freeLength(lays, earliest) >= need) return earliest;
+  function roomAt(lays, earliest, need, L) {
+    if (freeLength(lays, earliest, L) >= need) return earliest;
     const marks = [];
     for (const [, cs, ce] of lays) { if (cs > earliest) marks.push(cs); if (ce > earliest) marks.push(ce); }
     marks.sort((a, b) => a - b);
     let low = earliest;
     for (const mark of marks) {
-      if (freeLength(lays, mark) >= need) {
+      if (freeLength(lays, mark, L) >= need) {
         let high = mark;
         for (let i = 0; i < 40; i++) {
           const mid = (low + high) / 2;
-          if (freeLength(lays, mid) >= need) high = mid; else low = mid;
+          if (freeLength(lays, mid, L) >= need) high = mid; else low = mid;
         }
         return high;
       }
@@ -403,7 +408,7 @@ function createEngine(cfg) {
   function simKey(o) {
     const dyn = o.dispatch === 'dynamic';
     return JSON.stringify([o.shift, o.dispatch, o.plan, dyn ? [o.ruleA, o.mix, o.colorGroup] : (o.seqMode === 'today' ? 'today' : [o.seqMode, !!o.moOneGroup]),
-      o.relax, o.relaxMinH, o.relaxMaxH, o.setupMin, o.travelMin, o.pullAhead, !!o.live]);
+      o.relax, o.relaxMinH, o.relaxMaxH, o.setupMin, o.travelMin, o.pullAhead, !!o.live, o.cutters, o.tableM]);
   }
 
   function simulate(input, o) {
@@ -413,8 +418,12 @@ function createEngine(cfg) {
 
     // --- machines for the chosen shift option
     const nightSp = new Set(cfg.nightSpreaders), nightCu = new Set(cfg.nightCutters);
-    const allSpreaders = [], allCutters = Object.keys(cfg.cutGroups);
-    for (const c of allCutters) for (const m of cfg.cutGroups[c]) allSpreaders.push(m);
+    // the floor of this run: the chosen cutter count's groups and table length (the same expression
+    // as A.SPREADING_TABLE_LENGTH, so today's floor is bit-identical)
+    const cutGroups = cfg.cutGroupsByCount[o.cutters] || cfg.cutGroups;
+    const tableLen = o.tableM * cfg.yardsPerMetre;
+    const allSpreaders = [], allCutters = Object.keys(cutGroups);
+    for (const c of allCutters) for (const m of cutGroups[c]) allSpreaders.push(m);
     const perDayMin = {}, cuDayMin = {};
     let spCap = 0, cuCap = 0, totSpread = 0, totCut = 0;
     for (const m of allSpreaders) { perDayMin[m] = sumSpan(daySpans(o.shift, nightSp.has(m))); spCap += perDayMin[m]; }
@@ -423,11 +432,11 @@ function createEngine(cfg) {
     const activeCutters = allCutters.filter(c => cuDayMin[c] > 0);
     const activeSet = new Set(activeCutters);
     const primary = {};
-    for (const c of allCutters) for (const m of cfg.cutGroups[c]) primary[m] = c;
+    for (const c of allCutters) for (const m of cutGroups[c]) primary[m] = c;
     const spreaders = allSpreaders.filter(m => perDayMin[m] > 0 && activeSet.has(primary[m]));
     if (!spreaders.length) throw new Error('no machine is staffed in this shift option');
     const groupMembers = {};
-    for (const c of allCutters) groupMembers[c] = cfg.cutGroups[c].filter(m => spreaders.indexOf(m) >= 0);
+    for (const c of allCutters) groupMembers[c] = cutGroups[c].filter(m => spreaders.indexOf(m) >= 0);
     const flexOf = {};
     for (const m of spreaders) {
       flexOf[m] = (cfg.flex[m] || [primary[m]]).filter(c => activeSet.has(c));
@@ -505,7 +514,7 @@ function createEngine(cfg) {
       function dispatch(m, t) {
         const eff = advance(spSp[m], free[m]);
         lays[m] = lays[m].filter(l => l[2] > eff);
-        const start = roomAt(lays[m], eff, t.len);
+        const start = roomAt(lays[m], eff, t.len, tableLen);
         t.blockFrom = eff;
         t.blockedStaffed = staffedBetween(spSp[m], eff, start);
         spBlocked[m] += t.blockedStaffed;
@@ -537,7 +546,7 @@ function createEngine(cfg) {
       if (liveFloor) {
         const res = Floor.run({
           spreaders, cutters: activeCutters, primary, flexOf, spSp, cuSp,
-          tableLength: cfg.tableLength, setupMin: o.setupMin, travelMin: o.travelMin,
+          tableLength: tableLen, setupMin: o.setupMin, travelMin: o.travelMin,
           tasks: segTasks, tickMin: cfg.replanMin, horizonMin: cfg.horizonMin,
           seqFn: (group, init, initCut) => sequenceDay(group, seqMode, staticLay, init, initCut, o.moOneGroup),
           isPair: seqMode === 'today' ? undefined

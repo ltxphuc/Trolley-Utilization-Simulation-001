@@ -220,6 +220,9 @@ function labBlock(days) {
   sets.push(Object.assign({}, cont, { relax: false }));
   sets.push(Object.assign({}, cont, { recall: 'sameOnly' }));
   sets.push(Object.assign({}, cont, { live: false, relax: false }));    // the floor of 2026-11-09, as the page can still run it
+  // the what-ifs moved from the Simulation tab: the most cutters, and a longer table
+  sets.push(Object.assign({}, cont, { cutters: LAB_CFG.cutterCounts[LAB_CFG.cutterCounts.length - 1] }));
+  sets.push(Object.assign({}, cont, { tableM: LAB_CFG.tableOptionsM[1] }));
   const seen = new Set(), expected = [];
   for (const opt of sets) {
     const k = JSON.stringify(opt);

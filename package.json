@@ -12,6 +12,7 @@
     "lab": "node --max-old-space-size=6144 tools/lab_table.js",
     "beforeafter": "node --max-old-space-size=6144 tools/before_after.js",
     "carryprobe": "node --max-old-space-size=6144 tools/carryover_probe.js",
+    "ceiling": "node --max-old-space-size=6144 tools/util_ceiling.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

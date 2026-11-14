@@ -129,8 +129,9 @@ document is stale. Say so; don't silently follow it.
 | `npm run build` | rebuilds `out/` (needs the 6 GB heap; already in the script) |
 | `npm run lab` | **gate:** Rules Lab checks (vs model.js `runCarry()`) and comparison tables; the same `tools/lab.js` is inlined into the page |
 | `npm run regress` | **gate:** 18 shared dates × 117 scenarios, old file against new, on `runCarry()` (a reader check, not published numbers; the two subsets are copied and re-stamped from their own dates, because the live floor reads each batch's first plan date) |
-| `npm run parity` | **gate:** the page's loader against the model, in Edge |
-| Edge check | **gate:** open the Utilization, Simulation and Lab tabs in Edge: no console errors, badge green on the defaults |
+| `npm run parity` | **gate:** the page (Rules Lab) re-runs, in Edge, what Node computed: the option sets, all 117 sweep keys, this month's trace |
+| Edge check | **gate:** open the page in Edge: no console errors, badge green on the defaults, and the controls work (rules, cutters, table, fleet sliders). The site is **one page, the Rules Lab**; the Utilization and Simulation tabs were removed 2026-11-14 |
+| `npm run ceiling` | measurement: how high trolley utilization could go with perfect packing and unlimited waiting (A–E); explains why more batches per trolley stops near 67% |
 | `npm run idle`, `tc` | measurement tables (carry-over; the old cold-start figures are printed beside, marked historical) |
 | `npm run beforeafter` | the staged before/after, April–June: (0) as published 2026-11-06 → (i) pairs rule → (ii) cutter changeover and moving → (iii) no speed factor → (iv) S0 = the real Job Sequence → (v) the live floor (= the published model). Asserts that stage (0) reproduces the 2026-11-06 headline, stage (iii) the 2026-11-09 headline, stage (iv) the 2026-11-10 headline, that stage (v) equals `out/results.json`, and that S1–S3, the hold variants and the 78 non-`today` sweep keys do not move from (iii) to (iv). The cold start → carry-over comparison is retired (history in SIM_SPEC.md §18) |
 | `npm run carryprobe` | validation, not calibration: the model's lateness against the real Pull Date (nothing is tuned to it) |
@@ -186,6 +187,11 @@ floor facts and sit in every row, S0 included; only the rules differ. Pull-ahead
 dispatch, recall and colour grouping are new rules, never in S0. Cutter setup, travel and waiting
 are all lost time; more setup must never show more output. Every number quoted names its run:
 plan (real or 100k), scenario and floor settings.
+
+**Exception (user, 2026-11-14): cutter count and spreading-table length.** The Lab offers 6/7/8 cutters
+and 24/27 m tables as what-ifs. They belong to **your selection only**: S0 always stays at today's floor
+(5 cutters, 21.2 m), so "vs today" shows the effect of the cutter or table itself plus any rules chosen.
+The 24 and 27 m tables are hypothetical. `npm run lab` checks these floors against `model.runCarry()` exactly.
 
 **Rule (a), in the user's words (2026-11-09):** tables of the same MO are paired and spread
 back-to-back; the tasks and takt time are counted **by pairs**, not by single tables. The system

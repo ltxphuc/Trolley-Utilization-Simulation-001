@@ -464,6 +464,7 @@ Evaluated in this order:
 5. otherwise `normal`
 
 `cut_queue`, `no_fabric_time` and `neither` never fire. Colours are in `TASK_STATUS_COLORS`.
+(Since 2026-11-14 this is the old Simulation tab's status. The Lab's Gantt colours a bar `no_fabric_time` when its fabric is not ready at the cursor, and never checks the marker.)
 `Spd_Remark5` (section 1) is a better stretch source than `is_batch_last`.
 
 ## 11. Quirks that change numbers
@@ -944,8 +945,13 @@ independent reference the Lab is checked against.
 fixed queue, the G2 standard pace (**the Lab has no speed option**), the pairs rule ("Where the pairs
 go: Pairs over the floor"), **cutter changeover 5 min and moving 1.5 min (ESTIMATES) as part of the
 floor, not add-ons**, no fabric relaxing, published recall order. It runs all 79 plan dates on
-unrounded inputs, so its tiles equal the Utilization tab (S0–S3 and the whole 117-row sweep) and its
-Job Sequence equals the Simulation tab's. A green badge says so for the current selection. Everything
+unrounded inputs, so its tiles equal the published sweep (S0–S3 and the whole 117-row sweep; the Utilization
+tab that showed it was removed 2026-11-14) and its Job Sequence equals the model's trace. A green badge says so for the current selection.
+**Floor what-ifs (2026-11-14, moved from the Simulation tab):** option `cutters` (5/6/7/8, the layouts of
+`CUT_GROUPS_BY_CUTTER_COUNT`) and `tableM` (21.2/24/27 m, `LAB_TABLE_LENGTHS_M`). Defaults are today's floor and
+are bit-identical to it (`tableM × YARDS_PER_METRE` is the same expression as `SPREADING_TABLE_LENGTH`). They apply to the
+selection only: `ladder()` never sets them, so S0 stays at 5 cutters and 21.2 m. `npm run lab` proves every other floor
+against `model.runCarry({layout, tableLength})` exactly (11 floors × S0–S3 × 15 fields). Everything
 else is an add-on, off until switched on; changing the setup or travel minutes, or choosing "Keep an
 MO on one cut group", turns the badge to "Not the published model". **There is no floor selector:
 the Lab is carry-over only** (user, 2026-11-06); its closed (cold-start) floor was removed on
@@ -1141,14 +1147,20 @@ Full variants are 21.2 m at 5 and 7 cutters. Aggregate-only variants are 6 and 8
 
 ### The page (`dashboard.py` `TEMPLATE`)
 
-- **Utilization tab:** `key`, `lookup` (sweep lookup), `render`, `ladder`, `fleetDial`, `fleetChart`, `trolleySvg`. Fleet and cycle are computed live from trolleys per day.
-- **Simulation tab:** a second port of stage 4 runs in the browser: `compartmentsFor`, `combinedCompartments`, `trolleysFor`, `canCombine`, `loadingEvents`, `loadTrolleys`, `simulate`.
-- **Gantt and status:** `statusOf`, `gantt`, `ganttRows`, `workingBetween` (staffed-only hatching), `paintCursor` (1-minute cursor), `idleComparison`, `trolleyTable`, `trolleyCards`, `taskTable`.
-- **State and navigation:** `rerun`, `hashState`, `applyHash`, `buildCalendar`, `init`.
-- **Parity hook:** `window.__SIM.__check()` compares the browser loader against `expected` for every date and setting.
+**One page since 2026-11-14: the Rules Lab.** The Utilization and Simulation tabs (and the page's own
+port of the loading stage, `SIM`) were removed; what was useful moved into the Lab. The page runs
+`tools/lab.js` + `tools/floor.js` inlined by `build.js`, the very files Node runs, so there is one
+implementation of the loading stage in the project.
 
-That makes two implementations of the loading stage (`tools/model.js`, the page),
-and both must agree.
+- **Top level:** `DATA`, `state` (`cycle`, `fleet`: the Fleet sliders), `key`, `trolleySvg`, `fleetDial`, the theme button.
+- **Rules Lab (`LABUI`):** `syncControls`, `tiles` (fleet card + six tiles), `trolleyPanel` ("What one trolley looks like"),
+  `badge`, `machineTables` (`sumTable`, `eachTable`), `outputs`, `dayChart`, `ganttSvg` (rows from `rowsOf`/`groupsOf`: the option set's
+  cutter count), `idleTable`, `loadPanel`, `render`, `wire`, `show`, `__labCheck`.
+- **Moved from the Simulation tab:** cutter count 5/6/7/8 and table length 21.2/24/27 m (options `cutters`, `tableM` of `lab.js`;
+  selection only, S0 stays at 5 / 21.2 m, see CLAUDE.md) and the per-date idle-time table per cut group. Moved from the Utilization tab:
+  the fleet card, the six tiles, "What one trolley looks like", round trip and trolleys owned.
+- **Parity hook:** `window.__LAB.__labCheck()` re-runs the option sets Node precomputed (including a 7/8-cutter floor and a 24 m table),
+  all 117 sweep keys, and this month's trace.
 
 ### Gates and measurement scripts
 
@@ -1157,11 +1169,12 @@ and both must agree.
 | `npm run build` | `tools/build.js` | build | everything in `out/` (needs a 6 GB heap, ~24 s) |
 | `npm run lab` | `tools/lab_table.js` | **gate** | Rules Lab = model, exact (§17); also prints the comparison tables; `-- --checks` for the checks only |
 | `npm run regress` | `tools/regress.js` | **gate** | R0–R3: 18 shared dates × 117 scenarios = 33,696 checks on `runCarry()`, old file against new (a reader check, not a check against Python) |
-| `npm run parity` | `tools/parity_check.js` | **gate** | opens each month file in Edge (`playwright-core`) and runs `__SIM.__check()` |
+| `npm run parity` | `tools/parity_check.js` | **gate** | opens each month file in Edge (`playwright-core`) and runs `__LAB.__labCheck()` |
 | `npm run idle` | `tools/idle_variants.js` | measurement | README Part 7 §2–§4b, carry-over, 199 dates |
 | `npm run tc` | `tools/tc_table.js` | measurement | T-C, the cutter count against trolley numbers, carry-over |
 | `npm run beforeafter` | `tools/before_after.js` | measurement + asserts | the staged before/after (§18); exits non-zero if stage (0) does not reproduce the 2026-11-06 headline or stage (iii) differs from `out/results.json` |
 | `npm run carryprobe` | `tools/carryover_probe.js` | measurement | the model's lateness against the real Pull Date: a validation, not a calibration (§18) |
+| `npm run ceiling` | `tools/util_ceiling.js` | measurement | trolley-utilization ceilings with perfect packing and unlimited waiting (A–E); why more batches per trolley stops near 67% |
 
 Retired on 2026-11-09 with the cold start: `npm run pin` (`tools/pin.js`), `npm run warmstart`
 (`warmstart_table.js`), `npm run pullahead` (`pullahead_table.js`).

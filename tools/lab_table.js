@@ -112,6 +112,27 @@ function checks(days) {
   }
   say(tBad === 0 && tN === 39, `S0 ignores the option: ${tN} 'today' sweep keys identical with it on and off, model and Lab (${tBad} differ)`);
 
+  // The what-ifs moved from the Simulation tab (2026-11-14): cutter count and table length, against
+  // model.runCarry() on the same layout and table. Only the selection gets them; S0 stays at today's floor.
+  const floors = [];
+  for (const n of cfg.cutterCounts) for (const m of cfg.tableOptionsM) if (n !== A.CUTTER_COUNT || m !== A.SPREADING_TABLE_LENGTH_M) floors.push([n, m]);
+  const fcmp = { n: 0, bad: 0, worst: '' };
+  for (const [n, metres] of floors) {
+    const layout = M.machineLayout(A.CUT_GROUPS_BY_CUTTER_COUNT[n]);
+    for (const sc of S.HEADLINE) {
+      const key = S.sweepKey(sc.sequencing_mode, sc.max_batches, sc.wip_hold_minutes, sc.hold_any_workstation);
+      const m = M.runCarry(sc, days, { layout, tableLength: metres * A.YARDS_PER_METRE });
+      const r = E.run(raw, Object.assign(Lab.optFromSweepKey(key), { cutters: n, tableM: metres }));
+      for (const [mk, get] of FIELDS) {
+        fcmp.n += 1;
+        if (get(r) !== m[mk]) { fcmp.bad += 1; if (!fcmp.worst) fcmp.worst = `${n} cutters ${metres} m ${sc.name} ${mk}: lab ${get(r)} model ${m[mk]}`; }
+      }
+    }
+  }
+  say(fcmp.bad === 0, `Lab vs model.runCarry() on other floors  : ${floors.length} floors (cutters ${cfg.cutterCounts.join('/')} x table ${cfg.tableOptionsM.join('/')} m, but today's) x ${S.HEADLINE.length} scenarios x ${FIELDS.length} fields = ${fcmp.n} comparisons, ${fcmp.bad} differ${fcmp.worst ? '  (first: ' + fcmp.worst + ')' : ''}`);
+  const f5 = E.run(raw, Object.assign(Lab.optFromSweepKey('today|1|0|1'), { cutters: A.CUTTER_COUNT, tableM: A.SPREADING_TABLE_LENGTH_M }));
+  say(JSON.stringify(Lab.summary(f5)) === JSON.stringify(Lab.summary(E.run(raw, Lab.optFromSweepKey('today|1|0|1')))), 'the default floor chosen explicitly equals the default (cutters 5, 21.2 m)');
+
   console.log('\n3. SAME ARRANGEMENT — every task\'s machine, cutter and times');
   let cStamp = 0, cBad = 0, cWorst = '', cRuns = 0;
   for (const [mode, flag] of [['today', false], ['same_batch', false], ['cross_batch', false], ['same_batch', true], ['cross_batch', true]]) {
