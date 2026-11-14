@@ -84,7 +84,7 @@ document is stale. Say so; don't silently follow it.
 
 ### Numbers
 
-- `assumptions.py` (mirrored in `tools/assumptions.js`) is the **only** place a number
+- `tools/assumptions.js` is the **only** place a number
   may live. Nothing is hard-coded in the model. Every value cites its rule.
 - An estimate is marked `ESTIMATE` in capitals. Never present an estimate as measured.
   The biggest one is `CYCLE_DAYS_ESTIMATED = 7`, which has never been timed.
@@ -99,12 +99,11 @@ document is stale. Say so; don't silently follow it.
 
 ### Code
 
-- **Python is not installed on this machine.** `python.exe` is a Microsoft Store stub.
-  The Node port in `cct-trolley-model/tools/` is what actually runs, and it produced
-  everything in `out/`.
-- **Mirror, don't improve.** `tools/model.js` must match `model.py` exactly, quirks
-  included. Fixing a quirk is a separate, announced change with a before/after table.
-  A model change goes into both languages.
+- **Node-only since 2026-11-13** (user decision). The Python copy (`model.py` and the rest) was
+  removed: it never ran on this machine and had fallen behind the Node model. `tools/` is the
+  model and produced everything in `out/`. `dashboard.py` stays only because `build.js` reads
+  the page template out of it as text; Python is not needed.
+- Fixing a quirk is a separate, announced change with a before/after table.
 - Results must be **deterministic**. Never use `Math.random()`. Hashes in JS use
   `Math.imul`.
 - Never sort `pieces_by_size`, and never round `cut_end`. Film-keyed structures in JS
@@ -145,11 +144,10 @@ scenarios, trace or page, and report the result as it is.
 ### Scope
 
 - The published site and headline cover **April–June 2026** only (`WEBSITE_MONTHS`,
-  79 plan dates). `load_days()`, the gates and the measurement scripts see the full
+  79 plan dates). `loadDays()`, the gates and the measurement scripts see the full
   199-date file. Always say which scope a number comes from.
 - **The published model is the carry-over floor** (user rule, 2026-11-06: no cold start,
-  work is always left from the day before): `runCarry()` in `tools/model.js`, `run_carry()` in
-  `model.py`, machines at the G2 standard pace. **There is no speed factor** (removed 2026-11-09,
+  work is always left from the day before): `runCarry()` in `tools/model.js`, machines at the G2 standard pace. **There is no speed factor** (removed 2026-11-09,
   user: "If it doesn't related to anything, then remove it"), and no cold start (the closed-day
   `run()` was removed the same day). Cutter changeover 5 min (MO or colour change) and moving
   1.5 min (different spreader) are in the published model, cutters only; **both are ESTIMATES**
@@ -178,8 +176,6 @@ scenarios, trace or page, and report the result as it is.
   build S0 52.49% / 201.1 / 1,408, at an ESTIMATED speed 0.80): `npm run beforeafter`, SIM_SPEC.md §18.
   Known gap: the live S0 is less late than the real floor (25.98% of tables late against 51.25% real,
   6.85% more than a day late against 15.44%, `npm run carryprobe`). Accepted and reported, not tuned away.
-  **Python mirror gap:** `tools/floor.js` and the live floor in `model.js` have no `model.py` /
-  `floor.py` port yet (Python is not installed, so it could not be run); the Node port is what runs.
   Night shift starts at 18:00 (user, 2026-11-09; it moves no published number).
 
 ### Comparison standard

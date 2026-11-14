@@ -3,8 +3,8 @@
 **Purpose.** This is the rebuild specification for the CCT Trolley Model. It lists
 every input, constant, algorithm step, tie-break, quirk and validation number that
 moves a result. `RULES.md` explains *why* each rule exists; this file states *exactly
-what is computed*. Extracted from `assumptions.py`, `model.py`, `scenarios.py`,
-`tools/model.js`, `tools/assumptions.js`, `dashboard.py` and a direct profile of the
+what is computed*. Extracted from `assumptions.py`, `model.py`, `scenarios.py` (the Python
+copy, removed 2026-11-13; the project is Node-only since), `tools/model.js`, `tools/assumptions.js`, `dashboard.py` and a direct profile of the
 source workbook on **2026-11-05**.
 
 **Precedence.** If this file disagrees with the code, the code is right. When
@@ -174,7 +174,7 @@ decimals differently. Result: 6,269 of 15,920 tasks (39.4%) carry a setup.
 
 ## 3. Constants
 
-Every one lives in `assumptions.py` (mirrored in `tools/assumptions.js`).
+Every one lives in `tools/assumptions.js` (the Python `assumptions.py` was removed 2026-11-13).
 
 | Name | Value | Status | Rule |
 |---|---|---|---|
@@ -920,7 +920,7 @@ speed factor are gone); the figures are copied from the output printed at the ti
 **Validation targets for the published model (April–June).** `npm run lab` proves Lab = model exactly;
 the full-precision headline is in §14 and `out/results.json`.
 
-**Mirror:** `model.py` has `_staffed_between`, `carry_timeline` (with `mo_one_group`, the cutter
+**Mirror (retired 2026-11-13: the Python copy was removed, the project is Node-only):** `model.py` had `_staffed_between`, `carry_timeline` (with `mo_one_group`, the cutter
 changeover and the real cutter backlog `init_cut`), `run_carry`, `_pool`, `_sequence_pairs`, and
 `sequence(..., init_load, init_cut, mo_one_group)`; `daytrace.py build_trace(days, skipped, all_days)`
 and `run.py` use them. **They have never executed** (no Python on this machine) and are written to mirror
@@ -1057,12 +1057,15 @@ released + idle (the spreader's own colour-change setup counts as spreading, not
 cutting, then lost = setup + travel + waiting for a table. Cutter waiting is a residual (staffed −
 cutting − setup − travel), not a separately timed wait: it includes the wait at the end when a cutter
 has no more tables, idle at the run's start, and time when spreaders hold the tables back. The old
-percentage bars are gone. Since 2026-11-10 the Lab's "Where the machine time goes" is four tables, S0
-against the selection: all 13 spreaders summed, all 5 cutters summed (each as a total over the run and
-per working day, with a Change row and a Check column that shows a tick when working + every lost part
-= staffed), and each machine (13 spreaders, 5 cutters; a switch picks total or per working day). The
-Output panel sits directly above them. The Lab's tiles carry one "Cutter lost time, h a day" tile in place of
-"Cutter idle" and "Cutter setup + travel".
+percentage bars are gone. Since 2026-11-14 the Lab's "Where the machine time goes" is four tables, S0
+against the selection, all in hours per working day: the spreaders and the cutters, each per machine and
+for all machines summed (rows: staffed, working, each lost part, lost total, with a Change column),
+and each machine (13 spreaders, 5 cutters: working, lost, change in lost). The total-over-the-run view,
+the Check column and the unit switch were removed; the accounting is still checked by `npm run lab`.
+The Lab's selection panel is the Utilization tab's fleet card and six tiles ("vs today" = S0 on the same
+floor; round trip and fleet follow the Utilization sliders); the Output panel is one table, pieces cut a
+day for the real plan and the 100k plan, S0 against the selection, with the change in pieces and %.
+"What each step adds" was removed from the Lab (the ladder still runs in `lab.js` for the gates).
 
 **Gates:** `npm run lab` (`tools/lab_table.js`) proves, exactly, (1) the compact data decodes to
 model.js's tasks, (2) every scenario × 15 fields equals `model.runCarry()`, with the pairs rule
@@ -1076,7 +1079,7 @@ per month file, the Lab's option sets (re-run from Node), all 117 sweep keys aga
 and this month's tasks against the trace (`__LAB.__labCheck`).
 
 **Known limits:** the Lab fixes 5 cutters and the 21.2 m table; Python builds carry no `lab` and the
-tab stays hidden; any change recomputes four runs (real and 100k plan, S0 and selection) plus the ladder, a few seconds.
+tab stays hidden; any change recomputes four runs (real and 100k plan, S0 and selection), a few seconds.
 
 ## 16. Codebase map
 
@@ -1095,13 +1098,14 @@ flowchart LR
   D --> H[out/sim-YYYY-MM.html<br/>out/index.html]
 ```
 
-Two parallel implementations exist. **Python is the reference** but has never run on
-this machine. **The Node port in `tools/` produced everything in `out/`**, and must
-mirror the Python exactly, quirks included.
+**Node-only since 2026-11-13.** The Python copy never ran on this machine and had fallen
+behind; it was removed. **The Node code in `tools/` is the model and produced everything in
+`out/`.** The left column below is kept as history (Python-style function names are used
+throughout this spec; `model.js` uses the camelCase forms).
 
 ### Model files
 
-| Python | Node mirror | Role | Key functions |
+| Python (removed 2026-11-13) | Node | Role | Key functions |
 |---|---|---|---|
 | `assumptions.py` | `tools/assumptions.js` | every constant (section 3) | — |
 | `model.py` | `tools/model.js` | the 4 stages + metrics | `working_intervals`, `machine_layout`, `occupy`, `Scenario`/`makeScenario`, `parse_marker_ratio`, `_fnv1a32`, `_c_setup_minutes`, `load_days`, `_stamp_batch_readiness`, `compartments_for`, `trolleys_for`, `combined_compartments`, `can_combine`, `_pick_machine`, `sequence(tasks, mode, layout, init_load, init_cut, mo_one_group)`, `_sequence_today`, `_sequence_mo_aware` (the option "keep an MO on one cut group"), `_sequence_pairs` (S1–S3), `_free_length`, `_room_at`, `_loading_events`, `load_trolleys`, `_pool`, `_staffed_between`, `carry_timeline(days, mode, layout, table_length, mo_one_group)`, `run_carry`, `fleet_required`, `longest_sustainable_cycle`. (`run_timeline`, `run_day` and `run` were removed with the cold start; `sequenceToday` etc. are camelCase in `model.js`.) |
@@ -1111,10 +1115,9 @@ mirror the Python exactly, quirks included.
 | `run.py` | `tools/build.js` | orchestrates the build, writes `out/` | `compute_slip`, `summarise`, `main`, `write_excel` (Python only) / `buildPayload`, `extractTemplate`, `buildDashboardHtml` |
 | `dashboard.py` | — (`build.js` slices `TEMPLATE` out of it) | the page: HTML + CSS + browser JS | see below |
 | `idle_variants.py` | `tools/idle_variants.js` | README Part 7 idle-time tables (ported to carry-over 2026-11-09; the cold-start figures are printed beside, HISTORICAL) | `routing`, `measure`, `measure_cutters`, `section_2/3/4/4b` |
-| `test_csetup.py` | `tools/csetup_verify.js` + `tools/csetup-fixture.json` | Type C hash cross-check | 5 pytest cases / 40 fixture triples |
 | — | `tools/round.js` | Python-style banker's rounding | `bankersRound` |
 
-**Dependency order inside `model.py`:** `assumptions` → `working_intervals` → `machine_layout`
+**Dependency order inside `tools/model.js`:** `assumptions` → `working_intervals` → `machine_layout`
 → `LAYOUT` (the default 5-cutter layout). Every stage takes an optional `layout` and
 `table_length`, so variants never mutate module state.
 
@@ -1122,13 +1125,11 @@ mirror the Python exactly, quirks included.
 
 | File | Built by | Contents |
 |---|---|---|
-| `out/results.json` | `run.py` / `build.js` | keys: `plan_dates`, `tables`, `assumptions`, `cut_groups`, `night_shift_*`, `spreader_shift`, `cutter_shift`, `machine_minutes`, `shift_end`, `table_lengths_m`, `status_colors`, `headline` (S0–S3 summaries), `hold_variants`, `sweep`, `sweep_axes`, `per_day`, `sim_variants`, `cutter_counts`, `cut_groups_by_cutter_count`, `cutter_*_by_cutter_count`, `slip`, `baseline_variant` |
+| `out/results.json` | `build.js` | keys: `plan_dates`, `tables`, `assumptions`, `cut_groups`, `night_shift_*`, `spreader_shift`, `cutter_shift`, `machine_minutes`, `shift_end`, `table_lengths_m`, `status_colors`, `headline` (S0–S3 summaries), `hold_variants`, `sweep`, `sweep_axes`, `per_day`, `sim_variants`, `cutter_counts`, `cut_groups_by_cutter_count`, `cutter_*_by_cutter_count`, `slip`, `baseline_variant` |
 | `out/sweep.json` | same | the 117 sweep rows the Utilization sliders read |
 | `out/sim-2026-0{4,5,6}.html` | same | one self-contained page per month: the same pooled Utilization data plus that month's trace |
 | `out/index.html` | same | a copy of the chronologically latest month |
-| `out/results.xlsx` | `run.py` only | **stale** (last Python run 2026-08-26) |
 | `out/*.bak` | the last genuine Python run (cold-start era) | kept on disk, **never edit**; no gate has read them since 2026-11-09 (the pin was retired). The project has no independent check against Python any more |
-| `out/baseline-2026-09-08/`, `out/phase2-2026-09-08/` | snapshots | before/after evidence for the 2026-09-08 session |
 
 **Trace shape** (`build_trace`), per date × sequencing mode × variant:
 - `order[machine] = [task index…]`. This lives inside the variant, because the cutter count changes the sequence.
@@ -1146,8 +1147,8 @@ Full variants are 21.2 m at 5 and 7 cutters. Aggregate-only variants are 6 and 8
 - **State and navigation:** `rerun`, `hashState`, `applyHash`, `buildCalendar`, `init`.
 - **Parity hook:** `window.__SIM.__check()` compares the browser loader against `expected` for every date and setting.
 
-That makes three implementations of the loading stage (Python, `tools/model.js`, the page),
-and all three must agree.
+That makes two implementations of the loading stage (`tools/model.js`, the page),
+and both must agree.
 
 ### Gates and measurement scripts
 
@@ -1161,21 +1162,17 @@ and all three must agree.
 | `npm run tc` | `tools/tc_table.js` | measurement | T-C, the cutter count against trolley numbers, carry-over |
 | `npm run beforeafter` | `tools/before_after.js` | measurement + asserts | the staged before/after (§18); exits non-zero if stage (0) does not reproduce the 2026-11-06 headline or stage (iii) differs from `out/results.json` |
 | `npm run carryprobe` | `tools/carryover_probe.js` | measurement | the model's lateness against the real Pull Date: a validation, not a calibration (§18) |
-| `node tools/csetup_verify.js` | — | check | Type C hash determinism |
 
 Retired on 2026-11-09 with the cold start: `npm run pin` (`tools/pin.js`), `npm run warmstart`
 (`warmstart_table.js`), `npm run pullahead` (`pullahead_table.js`).
 
 **Dependencies:** Node with `xlsx` 0.18.5 (SheetJS) and `jsdom` (both dev-only), plus
-`playwright-core` with the installed Edge for parity. Python 3.9+ with `openpyxl`; pytest for `test_csetup.py`.
+`playwright-core` with the installed Edge for parity. No Python.
 
 **Agents:** `.claude/agents/` defines planner → coder → tester, plus a compacter that keeps README Part 8.
 
 ### Known code debts
 
-- `run.py:169` still writes `out/dashboard.html` instead of `out/index.html`.
-- `idle_variants.py` and `test_csetup.py` have never executed.
-- `results.xlsx` is stale.
 - Two rows of the Part 5 sensitivity table need a `max_chain` field on `Scenario` to regenerate.
 
 ### Suggested rebuild order

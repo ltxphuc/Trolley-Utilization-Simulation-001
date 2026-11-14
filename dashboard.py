@@ -387,20 +387,9 @@ table.tasks .dot{display:inline-block;width:9px;height:9px;border-radius:2px;mar
 .est{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.06em;
   color:var(--s3);border:1px solid var(--s3);border-radius:3px;padding:0 4px;margin-left:6px;vertical-align:1px}
 .labstatus{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--muted);margin-top:16px;min-height:18px}
-table.ladder{border-collapse:collapse;width:100%;font-size:12px}
-table.ladder th{text-align:right;font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.06em;
-  text-transform:uppercase;color:var(--muted);font-weight:400;padding:0 0 7px 14px;
-  border-bottom:1px solid var(--rule2);white-space:nowrap}
-table.ladder th:first-child,table.ladder td:first-child{text-align:left;padding-left:0}
-table.ladder td{text-align:right;padding:6px 0 6px 14px;border-bottom:1px solid var(--rule);
-  font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;white-space:nowrap}
-table.ladder td:first-child{font-family:"IBM Plex Sans",sans-serif}
-table.ladder tr.sel td{font-weight:700;background:var(--panel2)}
 table.mt td,table.mt th{white-space:nowrap}
 table.mt th.grp{text-align:center;border-bottom:1px solid var(--rule2)}
-table.mt tr.sec td{text-align:left;padding-left:0;padding-top:12px;font-family:"IBM Plex Mono",monospace;
-  font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--rule2)}
-table.mt td.ok{color:var(--muted)}
+i.chip{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:7px;vertical-align:-1px}
 table.out{border-collapse:collapse;width:100%;font-size:12px;margin:4px 0 14px}
 table.out th{text-align:right;font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.06em;
   text-transform:uppercase;color:var(--muted);font-weight:400;padding:0 0 7px 14px;border-bottom:1px solid var(--rule2)}
@@ -410,8 +399,6 @@ table.out td{text-align:right;padding:6px 0 6px 14px;border-bottom:1px solid var
 table.out td:first-child{font-family:"IBM Plex Sans",sans-serif}
 table.out tr.sel td{font-weight:700;background:var(--panel2)}
 table.out .up{color:var(--s2)} table.out .down{color:var(--bad)}
-.outverdict{font-size:13px;line-height:1.55;margin:6px 0 4px;max-width:90ch}
-.outverdict b{font-weight:700}
 .labnote{font-size:12px;color:var(--muted);line-height:1.55;max-width:80ch}
 .labnote b{color:var(--ink)}
 .labnote p{margin:0 0 9px}
@@ -871,15 +858,18 @@ table.out .up{color:var(--s2)} table.out .down{color:var(--bad)}
 
   <div>
     <div class="panel">
-      <h2>Your selection against S0 Today</h2>
-      <p class="sub">S0 is the real Job Sequence (P_Task_Calculate, core loop) on exactly the same floor as your selection (shift,
-        fabric relaxing, cutter setup and travel): cutter first, then the least-loaded spreader takes the shortest table, no pairing, one batch per trolley, no WIP hold.
-        S1 and later also use a different dispatcher, so S0 to S1 is the dispatcher plus pairing.
-        The floor is live: the Job Sequence re-plans every 30 minutes, a table starts once its plan date, marker
-        and fabric are ready, and a free cutter takes the lay that has waited longest (an ESTIMATE of the
-        operator's free choice). Only the rules differ.</p>
       <div class="parity" id="labBadge"></div>
+      <div class="verdict" id="labFleetCard" style="margin-top:14px">
+        <div>
+          <div class="vlabel" id="labFleetLabel">&mdash;</div>
+          <div class="vbig" id="labFleetBig">&mdash;</div>
+          <div class="vsub" id="labFleetSub"></div>
+        </div>
+        <div id="labFleetDial"></div>
+      </div>
       <div class="tiles" id="labTiles"></div>
+      <div class="hint" style="margin-top:12px">vs today = S0, the real Job Sequence, on the same floor as your selection.
+        Round trip and fleet follow the Utilization tab (the 7-day trip is an ESTIMATE).</div>
       <div class="labstatus" id="labStatus"></div>
     </div>
 
@@ -920,48 +910,22 @@ table.out .up{color:var(--s2)} table.out .down{color:var(--bad)}
     </details>
 
     <div class="panel">
-      <h2>What each step adds</h2>
-      <p class="sub">The four published scenarios, then each new rule you have switched on, added on top of the one above.
-        Every row runs on the same floor: <span id="labFloorLine"></span>.</p>
-      <div class="scrollx"><table class="ladder" id="labLadder"></table></div>
-    </div>
-
-    <div class="panel">
-      <h2>Output &mdash; pieces cut, against <span id="labReq"></span> a day</h2>
-      <p class="sub">Every piece the tables cut (ratio &times; layers, all sizes). <b>Cut a day</b> counts the pieces
-        finished inside the plan period; the rest is left uncut when the last plan date's shift ends. A shift
-        hour is one staffed hour of the floor's shift window.</p>
-      <h3 class="sechead">The real plan <span id="labOutRealN"></span></h3>
-      <div class="scrollx"><table class="out" id="labOutReal"></table></div>
-      <h3 class="sechead"><span id="labOutReqH"></span> <span id="labOutReqN"></span></h3>
-      <div class="hint" style="margin:0 0 6px" id="labOutReqHint"></div>
-      <div class="scrollx"><table class="out" id="labOutReq"></table></div>
-      <div class="outverdict" id="labVerdict"></div>
-      <div id="labOutDays"></div>
+      <h2>Output &mdash; pieces cut a day</h2>
+      <div class="scrollx"><table class="out" id="labOut"></table></div>
     </div>
 
     <div class="panel">
       <h2>Where the machine time goes</h2>
-      <p class="sub">Working time and lost time of the spreading and cutting machines, S0 against your selection, for the
-        real plan (not the 100k plan), on the floor settings in the floor line above (shift, relaxing, setup, travel).
-        <b>Total over the run</b> is every staffed hour from the first plan date to the last cut; <b>per working day</b>
-        divides it by the run's own number of working days (one working day is one shift window). Both runs do the same
-        work, so the totals compare directly; per day, a run that finishes sooner shows more hours a day. Lost time is
-        staffed time minus the working part: for a cutter, setup + travel + waiting for a table; for a spreader, waiting
-        for table space + nothing released + idle. <b>Check</b> shows &check; when working + every lost part equals the
-        staffed hours.</p>
-      <h3 class="sechead">Spreading machines &mdash; all 13 summed</h3>
-      <div class="scrollx"><table class="out mt" id="labSpreadSum"></table></div>
-      <h3 class="sechead">Cutting machines &mdash; all 5 summed</h3>
-      <div class="scrollx"><table class="out mt" id="labCutSum"></table></div>
-      <h3 class="sechead">Each machine</h3>
-      <div class="seg" id="labMachUnit" role="group" aria-label="Hours shown for each machine" style="max-width:340px;margin-bottom:12px">
-        <button type="button" data-unit="total" aria-pressed="true">Total over the run</button>
-        <button type="button" data-unit="day" aria-pressed="false">Per working day</button>
-      </div>
+      <div class="hint">Hours per working day, real plan, S0 against your selection.
+        <i class="chip" style="background:var(--s2)"></i><b>Working</b> = spreading or cutting. <b>Lost</b> = staffed time minus working (the other rows).
+        Change: <b style="color:var(--s2)">green</b> = better, <b style="color:var(--bad)">red</b> = worse. Setup and travel are ESTIMATES.</div>
       <h3 class="sechead">Spreading machines</h3>
-      <div class="scrollx"><table class="out mt" id="labSpreadEach"></table></div>
+      <div class="scrollx"><table class="out mt" id="labSpreadSum"></table></div>
       <h3 class="sechead">Cutting machines</h3>
+      <div class="scrollx"><table class="out mt" id="labCutSum"></table></div>
+      <h3 class="sechead">Each spreading machine</h3>
+      <div class="scrollx"><table class="out mt" id="labSpreadEach"></table></div>
+      <h3 class="sechead">Each cutting machine</h3>
       <div class="scrollx"><table class="out mt" id="labCutEach"></table></div>
     </div>
 
@@ -2527,7 +2491,7 @@ const T = DATA.trace, CFG = DATA.lab.cfg, V = CFG.addOnValues, SCOL = DATA.statu
 const E = Lab.createEngine(CFG);
 const DEF = Object.assign({}, CFG.defaults, {batches: 1});
 let lab = Object.assign({}, DEF);
-const view = {kind: 'sel', date: T.dates[0], cursor: 0, showAll: false, unit: 'total'};
+const view = {kind: 'sel', date: T.dates[0], cursor: 0, showAll: false};
 let INPUT = null, loadP = null, wired = false, timer = 0, frame = 0;
 const $$ = sel => Array.from(document.querySelectorAll(sel));
 const f1 = n => n.toFixed(1), f2 = n => n.toFixed(2);
@@ -2556,7 +2520,6 @@ function hhmm(m){
   return String(Math.floor(x / 60)).padStart(2, '0') + ':' + String(x % 60).padStart(2, '0');
 }
 const clock = t => { const abs = t + SHIFT_START, d = Math.floor(abs / 1440); return (d > 0 ? '+' + d + 'd ' : '') + hhmm(abs); };
-const planDone = min => clock(min);
 function workingBetween(spans, a, b){
   let n = 0;
   for (const [s, e] of spans) n += Math.max(0, Math.min(b, e) - Math.max(a, s));
@@ -2585,37 +2548,35 @@ function syncControls(){
 }
 
 /* ------------------------------------------------------------------ tiles */
-const TILES = [
-  ['Trolley utilization', r => r.utilizationPct, v => f1(v) + '%', 1, 'pts', 'Compartments opened out of 5 per trolley (rule H6)'],
-  ['Trolleys a day', r => r.trolleysPerDay, v => f1(v), -1, 'rel', ''],
-  ['Fleet needed, 7-day trip', r => r.trolleysPerDay * A.cycle_days_estimated, v => fmt(Math.round(v)), -1, 'abs0',
-    'ESTIMATE: the 7-day round trip has never been timed. Fleet owned: ' + fmt(A.fleet_size)],
-  ['Pieces per trolley', r => r.piecesPerTrolley, v => fmt(Math.round(v)), 1, 'rel', ''],
-  ['Spreader blocked, min a day', r => r.model.spreadingBlockedMin, v => fmt(Math.round(v)), -1, 'rel',
-    'Raw wait for table length (rule G6), counted as the Simulation tab counts it'],
-  ['Machines over their window', r => r.model.machinesOverWindow, v => f1(v), -1, 'abs1', 'Spreaders a day that run past their staffed window'],
-  ['Plan date fully cut by', r => r.dayDoneMeanMin, planDone, -1, 'h', 'Mean time of day at which a plan date\'s last table is cut'],
-  ['Cut inside own plan date', r => r.onTimePct, v => f1(v) + '%', 1, 'pts', ''],
-  ['Spreader time not spreading', r => 100 - pct(r.sp.busy, r.sp.staffed), v => f1(v) + '%', -1, 'pts', 'Blocked + starved + idle, share of staffed minutes'],
-  ['Cutter lost time, h a day', r => (r.cu.setup + r.cu.travel + r.cu.idle) / (r.finishHours / r.dayWindowHours), v => f1(v / 60) + ' h', -1, 'h',
-    'Setup + travel + waiting for a table, all 5 cutters summed. Setup and travel are ESTIMATES (published model: ' + V.setupMin + ' min and ' + V.travelMin + ' min)'],
-];
-function delta(a, b, unit){
-  const d = a - b, sgn = d >= 0 ? '+' : '-', ad = Math.abs(d);
-  if (unit === 'pts') return [ad < 0.05, `${sgn}${ad.toFixed(1)} pts`];
-  if (unit === 'rel') return [b === 0 || ad / Math.abs(b) < 0.0005, `${sgn}${(b ? 100 * ad / Math.abs(b) : 0).toFixed(1)}%`];
-  if (unit === 'abs0') return [ad < 0.5, `${sgn}${fmt(Math.round(ad))} trolleys`];
-  if (unit === 'abs1') return [ad < 0.05, `${sgn}${ad.toFixed(1)}`];
-  return [Math.abs(d) / 60 < 0.05, `${sgn}${(ad / 60).toFixed(1)} h`];
-}
+// The same fleet card and six tiles as the Utilization tab, for your selection. "vs today" is S0 on the same floor.
+// Round trip and fleet come from the Utilization tab's sliders (state.cycle, state.fleet).
 function tiles(sel, s0){
-  $('labTiles').innerHTML = TILES.map(([label, get, show, better, unit, hint]) => {
-    const a = get(sel), b = get(s0), [same, txt] = delta(a, b, unit);
-    const cls = same ? '' : ((a - b) * better > 0 ? 'up' : 'down');
-    return `<div class="tile" title="${hint}"><div class="k">${label}</div><div class="v">${show(a)}</div>`
-      + `<div class="d ${cls}">${same ? 'same as S0' : txt + ' vs S0'}</div></div>`;
-  }).join('');
+  const cycle = state.cycle, fleet = state.fleet;
+  const required = sel.trolleysPerDay * cycle, spare = fleet - required, short = spare < 0;
+  $('labFleetCard').className = 'verdict ' + (short ? 'short' : 'ok');
+  $('labFleetLabel').textContent = short ? 'The fleet does not cover this' : 'The fleet covers this';
+  $('labFleetBig').textContent = fmt(required) + ' trolleys needed';
+  $('labFleetSub').innerHTML = short
+    ? `At <b>${fmt(sel.trolleysPerDay, 0)} trolleys a day</b> and a <b>${cycle}-day</b> round trip, ${fmt(required)} trolleys stay in circulation. You own ${fmt(fleet)} &mdash; <b>${fmt(-spare)} short</b>.`
+    : `At <b>${fmt(sel.trolleysPerDay, 0)} trolleys a day</b> and a <b>${cycle}-day</b> round trip, ${fmt(required)} trolleys stay in circulation &mdash; <b>${fmt(spare)} spare</b> inside the ${fmt(fleet)} you own.`;
+  $('labFleetDial').innerHTML = fleetDial(required, fleet);
+  const d = (now, was, better, unit, dec) => {
+    const diff = now - was;
+    if (Math.abs(diff) < 0.05) return ['vs today: no change', ''];
+    return [`vs today: ${diff > 0 ? '+' : ''}${fmt(diff, dec)}${unit}`, (better === 'up' ? diff > 0 : diff < 0) ? 'up' : 'down'];
+  };
+  const tile = (label, val, [txt, cls]) => `<div class="tile"><div class="k">${label}</div><div class="v">${val}</div><div class="d ${cls}">${txt}</div></div>`;
+  const cyc = fleet / sel.trolleysPerDay, cyc0 = fleet / s0.trolleysPerDay;
+  $('labTiles').innerHTML =
+      tile('Compartments opened', f1(sel.utilizationPct) + '<em>%</em>', d(sel.utilizationPct, s0.utilizationPct, 'up', ' pt', 1))
+    + tile('Compartment fill', f1(sel.fillPct) + '<em>%</em>', d(sel.fillPct, s0.fillPct, 'up', ' pt', 1))
+    + tile('Garments loaded per trolley', fmt(sel.piecesPerTrolley, 0), d(sel.piecesPerTrolley, s0.piecesPerTrolley, 'up', '', 0))
+    + tile('Trolleys out per day', fmt(sel.trolleysPerDay, 0), d(sel.trolleysPerDay, s0.trolleysPerDay, 'down', '', 0))
+    + tile('Cycle the fleet covers', f1(cyc) + '<em> days</em>', d(cyc, cyc0, 'up', ' d', 1))
+    + tile('Avg wait in WIP', sel.avgWaitH > 0 ? f1(sel.avgWaitH) + '<em> h</em>' : '<em>none</em>',
+        [sel.avgWaitH > 0 ? fmt(lab.holdMin) + ' min allowed' : 'trolleys are not held', '']);
 }
+
 function badge(sel){
   const el = $('labBadge');
   const published = lab.plan === 'backlog' && lab.pullAhead === 0
@@ -2643,94 +2604,58 @@ function badge(sel){
   el.innerHTML = 'Not the published model: ' + on.join(', ');
 }
 
-/* ----------------------------------------------------------------- ladder */
-function floorLine(){
-  return ({both: 'both shifts', day: 'day shift only', night: 'night shift only'})[lab.shift]
-    + (lab.relax ? ', waiting for fabric relaxing' : ', not waiting for fabric')
-    + ', the Job Sequence re-planned every ' + CFG.replanMin + ' min, the marker ready from its Marker Date, a free cutter taking the lay that has waited longest'
-    + (lab.setupMin ? ', cutter setup ' + f1(lab.setupMin) + ' min' : ', no cutter setup')
-    + (lab.travelMin ? ', travel ' + f1(lab.travelMin) + ' min' : ', no travel');
-}
-function ladderTable(steps, sel){
-  $('labFloorLine').textContent = floorLine();
-  const rows = steps.concat([{name: 'Your selection', r: sel, cls: 'sel'}]);
-  $('labLadder').innerHTML = '<tr><th>Step</th><th>Utilization</th><th>Trolleys/day</th><th>Fleet @7d</th><th>Pieces cut/day</th><th>Blocked min/day</th>'
-    + '<th>Plan cut by</th><th>Own day</th><th>Spreader busy</th><th>Cutter busy</th><th>Setup+travel</th></tr>'
-    + rows.map(s => { const r = s.r; return `<tr class="${s.cls || ''}"><td>${s.name}</td>`
-      + `<td>${f2(r.utilizationPct)}%</td><td>${f1(r.trolleysPerDay)}</td><td>${fmt(Math.round(r.trolleysPerDay * A.cycle_days_estimated))}</td>`
-      + `<td>${fmt(Math.round(r.output.cutPerDay))}</td>`
-      + `<td>${fmt(Math.round(r.model.spreadingBlockedMin))}</td><td>${planDone(r.dayDoneMeanMin)}</td><td>${f1(r.onTimePct)}%</td>`
-      + `<td>${f1(pct(r.sp.busy, r.sp.staffed))}%</td><td>${f1(pct(r.cu.cut, r.cu.staffed))}%</td>`
-      + `<td>${f1(pct(r.cu.setup + r.cu.travel, r.cu.staffed))}%</td></tr>`; }).join('');
-}
-
 /* ------------------------------------------------- machine-time tables */
-// [key in the run's machine record, column name]. The first is the working part; every part after it is lost time
-// (lost = staffed - working). A cutter's "idle" is the wait for a table; it includes the wait at the end of the run
-// when the cutter has no more tables, because it is what is left of the staffed time.
-const SP_PARTS = [['busy', 'Spreading (working)'], ['blocked', 'Waiting for table space'], ['starved', 'Nothing released'], ['idle', 'Idle']];
-const CU_PARTS = [['cut', 'Cutting (working)'], ['setup', 'Setup'], ['travel', 'Travel'], ['idle', 'Waiting for a table']];
+// [key in the run's machine record, column name, legend colour]. The first is the working part; every part after it is
+// lost time (lost = staffed - working). A cutter's "waiting for a table" includes the wait at the end of the run when the
+// cutter has no more tables, because it is what is left of the staffed time. All hours are per working day: each run's
+// own hours divided by its own number of working days.
+const SP_PARTS = [['busy', 'Spreading (working)', 'var(--s2)'], ['blocked', 'Waiting for table space', 'var(--bad)'],
+  ['starved', 'Nothing released', 'var(--muted)'], ['idle', 'Idle', 'var(--rule2)']];
+const CU_PARTS = [['cut', 'Cutting (working)', 'var(--s2)'], ['setup', 'Setup (ESTIMATE)', 'var(--bad)'],
+  ['travel', 'Travel (ESTIMATE)', '#8B6BB5'], ['idle', 'Waiting for a table', 'var(--muted)']];
 const lostMin = (o, parts) => parts.slice(1).reduce((a, [k]) => a + o[k], 0);
-const chkMin = (o, parts) => parts.reduce((a, [k]) => a + o[k], 0) - o.staffed;     // 0 when working + lost = staffed
-const chkCell = (o, parts) => Math.abs(chkMin(o, parts)) <= 1 ? '&check;' : (chkMin(o, parts) > 0 ? '+' : '&minus;') + f1(Math.abs(chkMin(o, parts)) / 60) + ' h';
-// hours in the chosen unit: the total over the run, or per working day (the run's own number of working days)
-const mHrs = (min, days, unit) => unit === 'day' ? min / 60 / days : min / 60;
-const mShow = (h, unit) => unit === 'day' ? f1(h) : fmt(Math.round(h));
-const mSign = (h, unit) => (h > 0.0001 ? '+' : h < -0.0001 ? '&minus;' : '') + mShow(Math.abs(h), unit);
-// colour of a selection value against S0: dir +1 = more is better, -1 = less is better. Setup and travel are lost
-// time, so more of either is never shown as better.
-const mTone = (b, a, dir, unit) => Math.abs(b - a) < (unit === 'day' ? 0.05 : 0.5) ? '' : ((b - a) * dir > 0 ? 'up' : 'down');
-let lastRuns = null;
+const hd = (min, days) => min / 60 / days;
+// a signed change at the shown precision; a change that rounds to zero carries no sign
+const dsign = (v, dec) => { const r = +v.toFixed(dec); return (r > 0 ? '+' : r < 0 ? '&minus;' : '') + Math.abs(r).toFixed(dec); };
+// green = better, red = worse: dir +1 = more is better, -1 = less is better (lost time, setup and travel are never better when higher)
+const tone = (b, a, dir) => !dir || Math.abs(b - a) < 0.05 ? '' : ((b - a) * dir > 0 ? 'up' : 'down');
 
-function sumTable(id, parts, a, b, dA, dB){
-  const dirs = [0, 1].concat(parts.slice(1).map(() => -1), [-1]);             // staffed, working, lost parts, lost total
-  const cells = (o, days, unit) => [o.staffed].concat(parts.map(([k]) => o[k]), [lostMin(o, parts)]).map(m => mHrs(m, days, unit));
-  let h = '<tr><th></th><th>Working days</th><th>Staffed</th>' + parts.map(([, n]) => '<th>' + n + '</th>').join('')
-    + '<th>Lost total</th><th>Lost % of staffed</th><th>Check</th></tr>';
-  for (const [unit, title] of [['total', 'Total over the run (h)'], ['day', 'Per working day (h)']]) {
-    const ca = cells(a, dA, unit), cb = cells(b, dB, unit), dec = unit === 'day';
-    h += '<tr class="sec"><td colspan="' + (parts.length + 6) + '">' + title + '</td></tr>';
-    const row = (name, o, c, days) => '<tr' + (name === 'Your selection' ? ' class="sel"' : '') + '><td>' + name + '</td><td>' + (dec ? '' : f1(days)) + '</td>'
-      + c.map(v => '<td>' + mShow(v, unit) + '</td>').join('')
-      + '<td>' + f1(pct(lostMin(o, parts), o.staffed)) + '%</td><td class="ok">' + chkCell(o, parts) + '</td></tr>';
-    h += row('S0 Today', a, ca, dA) + row('Your selection', b, cb, dB);
-    const lp = pct(lostMin(b, parts), b.staffed) - pct(lostMin(a, parts), a.staffed);
-    h += '<tr><td>Change</td><td' + (dec ? '' : ' class="' + mTone(dB, dA, -1, 'day') + '"') + '>' + (dec ? '' : mSign(dB - dA, 'day')) + '</td>'
-      + cb.map((v, i) => '<td class="' + (dirs[i] ? mTone(v, ca[i], dirs[i], unit) : '') + '">' + mSign(v - ca[i], unit) + '</td>').join('')
-      + '<td class="' + (Math.abs(lp) < 0.05 ? '' : lp < 0 ? 'up' : 'down') + '">' + (lp > 0.0001 ? '+' : lp < -0.0001 ? '&minus;' : '') + f1(Math.abs(lp)) + ' pt</td><td></td></tr>';
+function sumTable(id, parts, n, kind, a, b, dA, dB){
+  const rows = [['Staffed', o => o.staffed, 0, null]]
+    .concat(parts.map(([k, name, col], i) => [name, o => o[k], i === 0 ? 1 : -1, col]), [['Lost total', o => lostMin(o, parts), -1, null]]);
+  const cols = '<th>S0</th><th>Yours</th><th>Change</th>';
+  let h = '<tr><th></th><th class="grp" colspan="3">Per ' + kind + ', h a day</th><th class="grp" colspan="3">All ' + n + ' ' + kind + 's, h a day</th></tr>'
+    + '<tr><th></th>' + cols + cols + '</tr>';
+  for (const [name, get, dir, col] of rows) {
+    const va = hd(get(a), dA), vb = hd(get(b), dB), t = tone(vb, va, dir);
+    h += '<tr' + (name === 'Lost total' ? ' class="sel"' : '') + '><td>' + (col ? '<i class="chip" style="background:' + col + '"></i>' : '') + name + '</td>'
+      + '<td>' + f2(va / n) + '</td><td>' + f2(vb / n) + '</td><td class="' + t + '">' + dsign((vb - va) / n, 2) + '</td>'
+      + '<td>' + f1(va) + '</td><td>' + f1(vb) + '</td><td class="' + t + '">' + dsign(vb - va, 1) + '</td></tr>';
   }
   $(id).innerHTML = h;
 }
 
-function eachTable(id, parts, names, aMap, bMap, dA, dB, unit){
-  // one grouped column per part: S0 | Your selection
-  const cols = [['Staffed', o => o.staffed, 0]].concat(parts.map(([k, n], i) => [n, o => o[k], i === 0 ? 1 : -1]), [['Lost total', o => lostMin(o, parts), -1]]);
-  let h = '<tr><th rowspan="2">Machine</th>' + cols.map(c => '<th class="grp" colspan="2">' + c[0] + '</th>').join('') + '<th rowspan="2">Check</th></tr>'
-    + '<tr>' + cols.map(() => '<th>S0</th><th>Selection</th>').join('') + '</tr>';
+function eachTable(id, parts, names, aMap, bMap, dA, dB){
+  let h = '<tr><th></th><th class="grp" colspan="2">Working, h a day</th><th class="grp" colspan="2">Lost, h a day</th><th></th></tr>'
+    + '<tr><th>Machine</th><th>S0</th><th>Yours</th><th>S0</th><th>Yours</th><th>Change in lost</th></tr>';
   for (const name of names) {
     const a = aMap[name], b = bMap[name];
-    if (!a || !b) { h += '<tr><td>' + name + '</td>' + cols.map(() => '<td>&mdash;</td><td>&mdash;</td>').join('') + '<td>&mdash;</td></tr>'; continue; }
-    h += '<tr><td>' + name + '</td>' + cols.map(([, get, dir]) => {
-      const va = mHrs(get(a), dA, unit), vb = mHrs(get(b), dB, unit);
-      return '<td>' + mShow(va, unit) + '</td><td class="' + (dir ? mTone(vb, va, dir, unit) : '') + '">' + mShow(vb, unit) + '</td>';
-    }).join('') + '<td class="ok">' + (Math.abs(chkMin(a, parts)) <= 1 && Math.abs(chkMin(b, parts)) <= 1 ? '&check;' : chkCell(a, parts) + ' / ' + chkCell(b, parts)) + '</td></tr>';
+    if (!a || !b) { h += '<tr><td>' + name + '</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td></td></tr>'; continue; }
+    const k = parts[0][0], w0 = hd(a[k], dA), w1 = hd(b[k], dB), l0 = hd(lostMin(a, parts), dA), l1 = hd(lostMin(b, parts), dB);
+    h += '<tr><td>' + name + '</td><td>' + f1(w0) + '</td><td>' + f1(w1) + '</td><td>' + f1(l0) + '</td><td>' + f1(l1) + '</td>'
+      + '<td class="' + tone(l1, l0, -1) + '">' + dsign(l1 - l0, 1) + '</td></tr>';
   }
   $(id).innerHTML = h;
 }
 
-function machineEach(sel, s0){
+function machineTables(sel, s0){
   const dA = s0.finishHours / s0.dayWindowHours, dB = sel.finishHours / sel.dayWindowHours;
   const byName = (list, key) => { const m = {}; for (const x of list) m[x[key]] = x; return m; };
   const spNames = [].concat(...Object.keys(CFG.cutGroups).map(c => CFG.cutGroups[c])), cuNames = Object.keys(CFG.cutGroups);
-  eachTable('labSpreadEach', SP_PARTS, spNames, byName(s0.spM, 'm'), byName(sel.spM, 'm'), dA, dB, view.unit);
-  eachTable('labCutEach', CU_PARTS, cuNames, byName(s0.cuM, 'c'), byName(sel.cuM, 'c'), dA, dB, view.unit);
-}
-function machineTables(sel, s0){
-  lastRuns = {sel, s0};
-  const dA = s0.finishHours / s0.dayWindowHours, dB = sel.finishHours / sel.dayWindowHours;
-  sumTable('labSpreadSum', SP_PARTS, s0.sp, sel.sp, dA, dB);
-  sumTable('labCutSum', CU_PARTS, s0.cu, sel.cu, dA, dB);
-  machineEach(sel, s0);
+  sumTable('labSpreadSum', SP_PARTS, s0.spM.length, 'spreader', s0.sp, sel.sp, dA, dB);
+  sumTable('labCutSum', CU_PARTS, s0.cuM.length, 'cutter', s0.cu, sel.cu, dA, dB);
+  eachTable('labSpreadEach', SP_PARTS, spNames, byName(s0.spM, 'm'), byName(sel.spM, 'm'), dA, dB);
+  eachTable('labCutEach', CU_PARTS, cuNames, byName(s0.cuM, 'c'), byName(sel.cuM, 'c'), dA, dB);
 }
 
 /* ----------------------------------------------------------------- output */
@@ -2741,60 +2666,16 @@ function runOpt100(opt){
   if (!cache100.has(k)) cache100.set(k, E.run100k(INPUT, opt));
   return cache100.get(k);
 }
-function outTable(id, sel, s0){
-  const o = sel.output, b = s0.output, req = CFG.required;
-  const cmp = (a, c, better, f) => {
-    const d = a - c, cls = Math.abs(d) < 0.5 * (f || 1) ? '' : (d * better > 0 ? 'up' : 'down');
-    return [cls, d];
-  };
-  const row = (name, r, cls, ref) => {
-    const x = r.output;
-    const [c1, d1] = ref ? cmp(x.cutPerDay, ref.output.cutPerDay, 1) : ['', 0];
-    const [c2, d2] = ref ? cmp(x.hoursPer100k, ref.output.hoursPer100k, -1, 0.1) : ['', 0];
-    return `<tr class="${cls}"><td>${name}</td><td>${fmt(Math.round(x.plannedPerDay))}</td><td>${fmt(Math.round(x.cutPerDay))}</td>`
-      + `<td class="${c1}">${ref ? (d1 >= 0 ? '+' : '-') + fmt(Math.round(Math.abs(d1))) + ' (' + (d1 >= 0 ? '+' : '-') + f1(100 * Math.abs(d1) / ref.output.cutPerDay) + '%)' : '&mdash;'}</td>`
-      + `<td>${x.cutPerDay >= req ? 'covers it' : fmt(Math.round(req - x.cutPerDay)) + ' short'}</td>`
-      + `<td>${x.daysMeeting} of ${r.days}</td><td>${fmt(x.backlogPieces)}</td>`
-      + `<td class="${c2}">${f1(x.hoursPer100k)} h</td><td>${fmt(Math.round(x.piecesPerShiftHour))}</td></tr>`;
-  };
-  $(id).innerHTML = '<tr><th>Logic</th><th>Planned a day</th><th>Cut a day</th><th>Change vs S0</th><th>Against ' + reqN()
-    + '</th><th>Days reaching it</th><th>Left uncut at the end</th><th>Shift hours per ' + reqN() + ' pieces</th><th>Pieces per shift hour</th></tr>'
-    + row('S0 Today', s0, '', null) + row('Your selection', sel, 'sel', s0);
-}
-function outDays(sel, s0){
-  const W = 760, H = 170, L = 52, R = 10, Tp = 10, B = 28, n = sel.perDay.length, req = CFG.required;
-  const top = Math.max(req * 1.15, ...sel.perDay.map(d => d.cutPieces), ...s0.perDay.map(d => d.cutPieces));
-  const x = i => L + (n < 2 ? 0 : (W - L - R) * i / (n - 1)), y = p => Tp + (H - Tp - B) * (1 - p / top);
-  const line = (r, col, w) => '<polyline fill="none" stroke="' + col + '" stroke-width="' + w + '" points="'
-    + r.perDay.map((d, i) => x(i).toFixed(1) + ',' + y(d.cutPieces).toFixed(1)).join(' ') + '"/>';
-  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Pieces cut on each date of the ${reqN()}-a-day plan">`;
-  for (const p of [0, req / 2, req]) s += `<line x1="${L}" x2="${W - R}" y1="${y(p)}" y2="${y(p)}" stroke="${p === req ? 'var(--bad)' : 'var(--rule)'}" ${p === req ? 'stroke-dasharray="4 3"' : ''}/>`
-    + `<text x="${L - 6}" y="${y(p) + 3}" text-anchor="end" font-size="10" fill="var(--muted)">${fmt(Math.round(p))}</text>`;
-  s += line(s0, 'var(--muted)', 1.5) + line(sel, 'var(--s1)', 2);
-  const step = Math.max(1, Math.round(n / 8));
-  for (let i = 0; i < n; i += step) s += `<text x="${x(i)}" y="${H - 8}" text-anchor="middle" font-size="10" fill="var(--muted)">${sel.perDay[i].date.slice(5)}</text>`;
-  $('labOutDays').innerHTML = '<h3 class="sechead">Pieces cut on each plan date of the ' + reqN() + '-a-day plan</h3>'
-    + '<div class="legend" style="margin:0 0 6px"><span><i style="background:var(--s1)"></i>Your selection</span>'
-    + '<span><i style="background:var(--muted)"></i>S0 Today</span><span><i style="background:var(--bad)"></i>Requirement</span></div>' + s + '</svg>';
-}
 function outputs(sel, s0, sel100, s0100){
-  $('labReq').textContent = reqN();
-  $('labOutReqH').textContent = 'A ' + reqN() + '-a-day plan';
-  $('labOutReqHint').textContent = 'The same tables, in plan order, dealt into plan dates that each hold at least ' + reqN()
-    + ' pieces, to ask the floor for the requirement every day. Each date is planned on its own morning, as in the real plan.';
-  $('labOutRealN').textContent = '(' + sel.days + ' plan dates)';
-  $('labOutReqN').textContent = '(' + sel100.days + ' plan dates)';
-  outTable('labOutReal', sel, s0); outTable('labOutReq', sel100, s0100);
-  const a = s0100.output, b = sel100.output, d = b.cutPerDay - a.cutPerDay, w = sel100.dayWindowHours;
-  const cover = x => x.cutPerDay >= CFG.required;
-  $('labVerdict').innerHTML = `At ${reqN()} pieces a day the floor cuts <b>${fmt(Math.round(a.cutPerDay))}</b> a day with today's logic`
-    + ` and <b>${fmt(Math.round(b.cutPerDay))}</b> with your selection: `
-    + (Math.abs(d) < 0.5 ? '<b>no change</b>' : `<b>${d > 0 ? 'up' : 'down'} ${fmt(Math.round(Math.abs(d)))} pieces a day (${f1(100 * Math.abs(d) / a.cutPerDay)}%)</b>`)
-    + (cover(b) ? '. The floor covers the requirement.' : `. It does <b>not</b> cover the requirement: ${fmt(Math.round(CFG.required - b.cutPerDay))} pieces a day short, `
-      + `${fmt(b.backlogPieces)} pieces still uncut when the last plan date ends.`)
-    + ` Cutting ${reqN()} pieces takes about <b>${f1(b.hoursPer100k)} shift hours</b> with your selection (${f1(a.hoursPer100k)} h today); one working day has ${f1(w)} h.`
-    + ` Machines run at the G2 standard pace.`;
-  outDays(sel100, s0100);
+  const row = (name, a, b) => {
+    const x = a.output.cutPerDay, y = b.output.cutPerDay, d = y - x, same = Math.abs(d) < 0.5;
+    const sign = d > 0 ? '+' : '&minus;';
+    return '<tr><td>' + name + ' (' + b.days + ' plan dates)</td><td>' + fmt(Math.round(x)) + '</td><td>' + fmt(Math.round(y)) + '</td>'
+      + '<td class="' + (same ? '' : d > 0 ? 'up' : 'down') + '">'
+      + (same ? 'no change' : sign + fmt(Math.round(Math.abs(d))) + ' (' + sign + f2(100 * Math.abs(d) / x) + '%)') + '</td></tr>';
+  };
+  $('labOut').innerHTML = '<tr><th>Pieces cut a day</th><th>S0 Today</th><th>Your selection</th><th>Change</th></tr>'
+    + row('Real plan', s0, sel) + row(reqN() + '-a-day plan', s0100, sel100);
 }
 function dayChart(sel, s0){
   const W = 760, H = 170, L = 34, R = 10, Tp = 10, B = 28, n = sel.perDay.length;
@@ -3043,14 +2924,13 @@ function loadPanel(){
 /* ------------------------------------------------------------- the render */
 function render(){
   if (!INPUT) return;
-  let sel, steps, sel100, s0100;
+  let sel, s0, sel100, s0100;
   try {
     sel = runOpt(lab);
-    steps = Lab.ladder(lab, V).map(s => ({name: s.name, r: runOpt(s.opt)}));
+    s0 = runOpt(Lab.ladder(lab, V)[0].opt);
     sel100 = runOpt100(lab); s0100 = runOpt100(Lab.ladder(lab, V)[0].opt);
   } catch (e) { $('labStatus').textContent = 'Cannot run this combination: ' + e.message; return; }
-  const s0 = steps[0].r;
-  tiles(sel, s0); badge(sel); outputs(sel, s0, sel100, s0100); ladderTable(steps, sel); machineTables(sel, s0); dayChart(sel, s0);
+  tiles(sel, s0); badge(sel); outputs(sel, s0, sel100, s0100); machineTables(sel, s0); dayChart(sel, s0);
   legend(); arrangement(); loadPanel();
   let msg = `${sel.tasks} tables over ${sel.days} plan dates, ${fmt(sel.trolleys)} trolleys, ${fmt(sel.combines)} combines, recalls ${fmt(sel.recallsSame)} same-batch / ${fmt(sel.recallsCross)} other-batch.`;
   if (lab.shift === 'night') msg += ` Night staffs 3 of 13 spreaders and one cutter: this plan needs about ${Math.ceil(sel.finishMin / 1440)} calendar days.`;
@@ -3098,11 +2978,6 @@ function wire(){
   $('labReset').addEventListener('click', () => { lab = Object.assign({}, DEF); syncControls(); schedule(); });
   $$('#labViewSeg button').forEach(b => b.addEventListener('click', () => {
     view.kind = b.dataset.view; view.cursor = 0; syncControls(); arrangement(); loadPanel();
-  }));
-  $$('#labMachUnit button').forEach(b => b.addEventListener('click', () => {
-    view.unit = b.dataset.unit;
-    $$('#labMachUnit button').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.unit === view.unit)));
-    if (lastRuns) machineEach(lastRuns.sel, lastRuns.s0);
   }));
   $('labCursor').addEventListener('input', e => {
     view.cursor = +e.target.value;
