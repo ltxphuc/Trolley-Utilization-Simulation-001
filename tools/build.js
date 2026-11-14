@@ -6,7 +6,8 @@ RUN EVERYTHING — mirrors run.py + dashboard.py's build_dashboard() exactly.
 
 Reads data/planppc.xlsx, runs every scenario, and writes into out/:
 
-    index.html     <- the live site file (run.py's dashboard.html equivalent)
+    index.html     <- the live site file (run.py's dashboard.html equivalent);
+                      also copied to the repo root for GitHub Pages
     results.json    <- every scenario and every plan date
     sweep.json      <- what the dashboard's sliders read from
 
@@ -368,6 +369,11 @@ function main() {
   // point keeps working without every reader needing to know the month URLs.
   fs.copyFileSync(lastPath, path.join(OUT, 'index.html'));
   console.log(`wrote ${OUT}\\index.html (copy of ${lastPath})`);
+
+  // GitHub Pages serves the repo root, so the site's entry point is also copied there
+  // (without it Pages shows README.md). Same bytes as out/index.html.
+  fs.copyFileSync(lastPath, path.join(REPO, 'index.html'));
+  console.log(`wrote ${REPO}\\index.html (copy of ${lastPath}, for GitHub Pages)`);
 
   console.log(`\ndone in ${((Date.now() - started) / 1000).toFixed(0)}s`);
 }

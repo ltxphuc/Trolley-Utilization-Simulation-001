@@ -1128,7 +1128,7 @@ throughout this spec; `model.js` uses the camelCase forms).
 | `out/results.json` | `build.js` | keys: `plan_dates`, `tables`, `assumptions`, `cut_groups`, `night_shift_*`, `spreader_shift`, `cutter_shift`, `machine_minutes`, `shift_end`, `table_lengths_m`, `status_colors`, `headline` (S0–S3 summaries), `hold_variants`, `sweep`, `sweep_axes`, `per_day`, `sim_variants`, `cutter_counts`, `cut_groups_by_cutter_count`, `cutter_*_by_cutter_count`, `slip`, `baseline_variant` |
 | `out/sweep.json` | same | the 117 sweep rows the Utilization sliders read |
 | `out/sim-2026-0{4,5,6}.html` | same | one self-contained page per month: the same pooled Utilization data plus that month's trace |
-| `out/index.html` | same | a copy of the chronologically latest month |
+| `out/index.html` | same | a copy of the chronologically latest month. `build.js` also copies it to the repo root `index.html` (since 2026-11-14), because GitHub Pages serves the root; without it Pages shows the README |
 | `out/*.bak` | the last genuine Python run (cold-start era) | kept on disk, **never edit**; no gate has read them since 2026-11-09 (the pin was retired). The project has no independent check against Python any more |
 
 **Trace shape** (`build_trace`), per date × sequencing mode × variant:
