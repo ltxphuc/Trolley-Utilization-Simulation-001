@@ -126,7 +126,7 @@ const CUT_MIN_PER_LAYER_PER_YARD = 0.40 / 8.5;
 // cutting run at the G2 standard pace; a 0.80 factor calibrated to Pull Date
 // lateness was an unmeasured catch-all; with cutter changeover and moving time
 // in the model a one-off sweep of the speed found none that reproduced the real
-// lateness (SIM_SPEC.md §18). tools/carryover_probe.js now only validates.
+// lateness (docs/HISTORY.md). tools/carryover_probe.js now only validates.
 
 // User requirement (2026-11-06, not an estimate): Central Cutting must cut at
 // least this many pieces a day. The Rules Lab's Output panel tests the floor

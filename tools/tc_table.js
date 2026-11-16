@@ -1,7 +1,7 @@
 'use strict';
 /* TABLE T-C — the cutting-machine-count axis's effect on trolley numbers.
  * ====================================================================
- * README Part 8 §4 flagged this as the one open measurement of the
+ * docs/archive/README_2026-11-14.md Part 8 §4 flagged this as the one open measurement of the
  * 2026-09-08 work: cutter count changes CUT_GROUPS, which changes
  * _pick_machine's candidate list, which changes the sequence — and trolley
  * utilization depends on the sequence. Part 7 §5's "trolley utilization is
@@ -22,7 +22,7 @@
  * Run:  node --max-old-space-size=6144 tools/tc_table.js
  * Python has never run on this machine; there is no .py sibling for this
  * because idle_variants.py §4b (its own cutter table) is the Python-side
- * home for the same measurement — see README Part 8 §4.
+ * home for the same measurement — see docs/archive/README_2026-11-14.md Part 8 §4.
  */
 const path = require('path');
 const A = require('./assumptions');

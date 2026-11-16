@@ -2,7 +2,7 @@
 /*
 Python's round() breaks ties to even (banker's rounding); JS's Math.round()
 and toFixed() both round half away from zero / half up. Trap 3 in
-README.md Part 8: 4,345 trolleys over 20 days is exactly 217.25, and the two
+docs/archive/README_2026-11-14.md Part 8: 4,345 trolleys over 20 days is exactly 217.25, and the two
 rules disagree on it (Python: 217.2 — 2 is even; toFixed(1): "217.3").
 
 The naive fix — multiply by 10^ndigits and compare the fraction to 0.5 — is

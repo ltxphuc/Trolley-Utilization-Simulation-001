@@ -1,42 +1,23 @@
-# SIM_SPEC.md — everything that directly changes the simulation's output
+# SIM_SPEC — how the simulation computes
 
-**Purpose.** This is the rebuild specification for the CCT Trolley Model. It lists
-every input, constant, algorithm step, tie-break, quirk and validation number that
-moves a result. `RULES.md` explains *why* each rule exists; this file states *exactly
-what is computed*. Extracted from `assumptions.py`, `model.py`, `scenarios.py` (the Python
-copy, removed 2026-11-13; the project is Node-only since), `tools/model.js`, `tools/assumptions.js`, `dashboard.py` and a direct profile of the
-source workbook on **2026-11-05**.
+**For developers** who run, change or port the model. It lists every input, constant, algorithm step,
+tie-break, quirk and validation number that moves a result.
 
-**Precedence.** If this file disagrees with the code, the code is right. When
-rebuilding, every behaviour marked **QUIRK** must either be reproduced (to match the
-published numbers) or changed deliberately and reported with a before/after table.
+- **The rules** (what the model assumes about the floor) are in [RULES.md](RULES.md). This file cites them
+  by ID (H6, G6, LF3, C2.2…) and says how each one is computed.
+- **The history** (dated decisions, superseded numbers, the stage-by-stage before/after) is in
+  [docs/HISTORY.md](docs/HISTORY.md). This file describes the model as it is now.
+- **The code wins.** If this file disagrees with `tools/`, the code is right. A behaviour marked **QUIRK**
+  must be reproduced to match the published numbers, or changed deliberately with a before/after table.
 
-**Status, 2026-11-09.** The published model is the **carry-over floor** (§18) and nothing else:
-no cold start (the closed-day model, `run()` / `runDay()` / `runTimeline()`, was removed on
-2026-11-09, user: "there will never be a cold start"), no machine speed factor (removed the same
-day: the model runs at the G2 standard pace), cutter changeover 5 min and moving 1.5 min (both
-ESTIMATES, cutters only) in the floor (Q19), and S1–S3 pair first and assign each pair over the
-whole floor (§5). The headline is in §14; how it moved from the 2026-11-06 build is in §18
-(`npm run beforeafter`). Cold-start text kept for history is marked **HISTORICAL (cold-start
-model, retired 2026-11-09; no longer reproducible)**. Scope of every number: April–June 2026, 79
-plan dates, 6,501 tables, unless a line says otherwise.
+**The published model, in one paragraph.** One timeline over every plan date with no cold start (§18),
+on the live floor (§6b): the Job Sequence re-plans every 30 minutes, and a table starts once its plan
+date, Marker Date and fabric are ready. Machines run at the G2 standard pace. Cutters lose 5 min to a
+changeover and 1.5 min to moving (both ESTIMATES, Q19). S0 is the real Job Sequence and S1–S3 pair first
+(§5). Loading happens per plan date (§7). The code is Node only (`tools/`).
 
-**Update, 2026-11-10.** S0 is now the **real Job Sequence** (`data/SQL Job Sequence Logic.sql`,
-`P_Task_Calculate`, core loop only), mirrored by `sequenceJobSeq` (§5). The model's S0 until
-2026-11-09 clustered a whole MO + colour + batch onto one cut group (user, 2026-11-09: that is not
-how the floor works) and survives only as the internal mode `today_grouped`, used by
-`npm run beforeafter`. **Every S0 number moved; S1–S3, the hold variants and the other 78 sweep keys
-did not move by one bit.** S0 → S1 is now "new dispatcher + pairing" (two changes), not pairing
-alone. The night shift starts at 18:00 (§4; no published number moves). Tables below that quote S0
-figures from the pre-2026-11-10 S0 are marked as such; the current figures are §14 and §18 stage (iv).
-
-**Update, 2026-11-10 (later): the floor is live.** `tools/floor.js` (shared by `model.js` and the Lab,
-inlined into the page) replaces the old once-a-day plan for the published model (§6b). Every
-published number moved, S0–S3 and all 117 sweep keys; §14 and §18 stage (v) have them, and §6–§9,
-§12, §17 text that describes "plan once at 07:15, every table ready, the cutter cutting in spread
-order" now describes the floor of 2026-11-09 (`A.LIVE_FLOOR = false`, kept for `npm run beforeafter`).
-The Lab's Dynamic spreader pick and Keep same colour close were removed (user). **No Python mirror of
-the live floor exists yet** (Python is not installed).
+**Scope of every number:** April–June 2026 (`WEBSITE_MONTHS`), 79 plan dates, 6,501 tables, unless a
+line says otherwise. The gates and measurement scripts read the full 199-date file.
 
 Contents
 
@@ -45,19 +26,19 @@ Contents
 3. Constants
 4. Machines, layout and shifts
 5. Stage 2 — sequencing
-6. Stage 3 — timeline (spreading, cutting, blocking)
+6. Stage 3 — timeline (spreading, cutting, blocking); 6b. The live floor
 7. Stage 4 — loading (compartments, trolleys, combine, WIP hold)
 8. Metrics and aggregation
 9. Scenarios and the sweep
 10. Task readiness status (display only)
 11. Quirks that change numbers
-12. Measurement-only extensions and their results
+12. Measurement scripts and their results
 13. Not modelled, estimated, or missing
-14. Validation targets for a rebuild
-15. Decisions to make before rebuilding
+14. Validation targets
+15. Open decisions
 16. Codebase map
-17. Rules Lab
-18. The carry-over floor (the published model since 2026-11-06)
+17. Rules Lab (the website's engine)
+18. The carry-over floor
 
 ---
 
@@ -174,49 +155,61 @@ decimals differently. Result: 6,269 of 15,920 tasks (39.4%) carry a setup.
 
 ## 3. Constants
 
-Every one lives in `tools/assumptions.js` (the Python `assumptions.py` was removed 2026-11-13).
+Every one lives in `tools/assumptions.js`. The last column is the rule in [RULES.md](RULES.md). The same
+values, with every formula that uses them, are in the generated register [docs/DATA_MODEL.md](docs/DATA_MODEL.md)
+(`npm run datamodel`).
 
-| Name | Value | Status | Rule |
+| Name | Value | Status | RULES.md |
 |---|---|---|---|
 | `TROLLEY_COMPARTMENTS` | 5 | rule | H3 |
 | `COMPARTMENT_CAP` | 150 garments | rule | H1 |
-| `MAX_BATCHES_PER_TROLLEY` | 2 (never 3) | proposed rule | Change 2 |
+| `MAX_BATCHES_PER_TROLLEY` | 2 (never 3) | proposed rule | C2.1 |
+| `TOPUP_BATCH_CAP_FROM_SCENARIO` | true: the top-up cap is `min(scenario.max_batches, 2)`; false = the old global cap, kept only for `npm run beforeafter` | rule | C2.3 (Q1) |
 | `MAX_TROLLEYS_PER_COMBINE` | 4 | rule | H8 |
 | `TROLLEY_BAYS` | 52 (13 WS × 4) | rule | H7 |
-| `FLEET_SIZE` | 1,200 | fact | — |
-| `CYCLE_DAYS_ALLOWED` | 5 (1 + 3 + 1) | allowance | — |
-| `CYCLE_DAYS_ESTIMATED` | 7 | **ESTIMATE, never timed** | — |
-| `WIP_HOLD_MINUTES` | 60 | proposed | Change 3 |
-| `WIP_HOLD_ANY_WORKSTATION` | True | proposed (open question) | Change 3 |
-| `WIP_HOLD_MATCH_ON` | (mo, color, film_size) | proposed | Change 3 |
-| `FILM_SIZE_BY_GARMENT_SIZE` | XXS/XS/S → 90; M/L → 100; XL/XXL/3XL/4XL → 110 | substitute for Net_Rate | H5 |
-| `RELAX_HOURS` | 24 | precondition, not simulated | — |
-| `CUT_GROUPS_BY_CUTTER_COUNT` | 5/6/7/8 cutters (section 4) | 5 = floor | F2 |
-| `CUTTER_COUNT` | 5 | floor | F2 |
+| `FLEET_SIZE` | 1,200 | fact | B4 |
+| `CYCLE_DAYS_ALLOWED` | 5 (1 + 3 + 1) | allowance | B5 |
+| `CYCLE_DAYS_ESTIMATED` | 7 | **ESTIMATE, never timed** | B6, E1 |
+| `WIP_HOLD_MINUTES` | 60 | proposed | C3.2 |
+| `WIP_HOLD_ANY_WORKSTATION` | true | proposed (open question) | C3.4 |
+| `WIP_HOLD_MATCH_ON` | (mo, color, film_size) | proposed | C3.3 |
+| `FILM_SIZE_BY_GARMENT_SIZE`, `UNIVERSAL_SIZES` | XXS/XS/S → 90; M/L → 100; XL/XXL/3XL/4XL → 110 | substitute for Net_Rate | H5, E8 |
+| `TASK_STATUS_COLORS`, `TASK_STATUS_NOT_SIMULATED` | the 8 status colours (§10) | display only | — |
+| `RELAX_HOURS` | 24 | rule | R3 |
+| `RELAX_ARRIVAL_LEAD_MIN_H` / `RELAX_ARRIVAL_LEAD_MAX_H` | 12 / 48 h before the batch's first plan date | **ESTIMATE** | R4, E4 |
+| `CUT_GROUPS_BY_CUTTER_COUNT`, `SIM_CUTTER_COUNTS` | 5/6/7/8 cutters (§4); engine and measurement scripts only | 5 = floor | F2 |
+| `CUTTER_COUNT`, `CUT_GROUPS` | 5, the 5-cutter groups | floor | F2 |
 | `FLEXIBLE_CUT` | 24-03 → [24MC1, 24MC2]; 24-05 → [24MC2, 24MC3] | rule | F8 |
-| `NIGHT_SHIFT_SPREADERS` / `_CUTTERS` | 24-01/02/03 / 24MC1 | rule | F5–F7 |
-| `SHIFT_START_MINUTE` | 435 (07:15 = t 0) | measured | — |
-| `DAY_SHIFT` | (0, 765) = 07:15–20:00 | measured | — |
-| `NIGHT_SHIFT` | (645, 1305) = 18:00–05:00 | measured (user, 2026-11-09; was 630 = 17:45) | — |
-| `DAY_BREAKS` | (270, 330), (600, 630) = 11:45–12:45, 17:15–17:45 | measured | — |
-| `NIGHT_BREAKS` | (885, 915), (1125, 1155) = 22:00–22:30, 02:00–02:30 | measured | — |
-| `BREAKS_STOP_MACHINES` | True | **unconfirmed** | — |
-| `SPREADING_TABLE_LENGTH_M` | 21.2 m → 23.18 yd (× 1.0936133) | **measured**, one value for all 13 | G6 |
-| `LAY_NEEDS_FULL_LENGTH` | True (declared; the code always needs full length) | conservative | G6 |
-| `MACHINE_FILL_TARGET` | 0.70 | heuristic (used by `pick_machine`, i.e. S1–S3 and `today_grouped`; the real Job Sequence has none) | — |
-| `ORDER_TYPE_PRIORITY` (`ORDER_TYPE_PRIORITY_DEFAULT`) | SQR 0, QR 1, Normal 2 (default 2) | **ESTIMATE**: the SQL's commented-out older rule (L1016-1076); the live `Job_Seq_Schedule_Priority` table was not supplied | S0 priority |
+| `NIGHT_SHIFT_SPREADERS` / `NIGHT_SHIFT_CUTTERS` | 24-01/02/03 / 24MC1 | rule | F5–F7 |
+| `SHIFT_START_MINUTE` | 435 (07:15 = t 0) | measured | B1 |
+| `DAY_SHIFT` | (0, 765) = 07:15–20:00 | measured | B1 |
+| `NIGHT_SHIFT` | (645, 1305) = 18:00–05:00 | measured | B2 |
+| `DAY_BREAKS` | (270, 330), (600, 630) = 11:45–12:45, 17:15–17:45 | measured | B1 |
+| `NIGHT_BREAKS` | (885, 915), (1125, 1155) = 22:00–22:30, 02:00–02:30 | measured | B2 |
+| `BREAKS_STOP_MACHINES` | true | **unconfirmed** | T2, E9 |
+| `SPREADING_TABLE_LENGTH_M`, `YARDS_PER_METRE`, `SPREADING_TABLE_LENGTH` | 21.2 m × 1.0936133 = 23.18 yd | **measured**, one value for all 13 | B3, G6 |
+| `LAB_TABLE_LENGTHS_M` | 21.2 / 24 / 27 m; engine checks only (no page control since 2026-11-16) | hypothetical lengths | — |
+| `LAY_NEEDS_FULL_LENGTH` | true (declared; the code always needs the full length) | conservative | G6 |
+| `MACHINE_FILL_TARGET` | 0.70 (used by `pick_machine`: S1–S3; the real Job Sequence has none) | heuristic | C1.4, E10 |
+| `ORDER_TYPE_PRIORITY`, `ORDER_TYPE_PRIORITY_DEFAULT` | SQR 0, QR 1, Normal 2 (default 2) | **ESTIMATE**: the SQL's commented-out older rule (L1016-1076) | JS3, E6 |
 | `SPREAD_MIN_PER_LAYER_PER_YARD` | 0.80 / 8.5 = 0.09412 | rule | G2 |
 | `CUT_MIN_PER_LAYER_PER_YARD` | 0.40 / 8.5 = 0.04706 | rule | G2 |
-| `C_SETUP_MINUTES_MIN/MAX_TENTHS` | 80 / 100 | **ESTIMATE** | G3/I3/N |
-| `C_SETUP_HASH_OFFSET/PRIME` | 2166136261 / 16777619 | algorithm | — |
-| `C_SETUP_PER_C_ROW` | False | decision | — |
-| `CUT_SETUP_MO_COLOR_MINUTES` | 5 | **ESTIMATE**, cutters only | user rule 2026-11-09 (Q19) |
-| `CUT_TRAVEL_MINUTES` | 1.5 | **ESTIMATE**, cutters only | user rule 2026-11-09 (Q19) |
-| `PULL_AHEAD_DAYS` | 1 | Rules Lab add-on value only (not in the published model) | user rule 2026-11-05 |
-| `WEBSITE_MONTHS` | 2026-04, 05, 06 | scope decision | — |
+| `REQUIRED_PIECES_PER_DAY` | 100,000 | requirement | B7 |
+| `LIVE_FLOOR` | true (false = the floor of 2026-11-09, `npm run beforeafter` only) | published | A6 |
+| `REPLAN_MINUTES` | 30 | rule | LF1 |
+| `PLAN_HORIZON_HOURS` | 24 | rule | LF2 |
+| `C_SETUP_MINUTES_MIN_TENTHS` / `C_SETUP_MINUTES_MAX_TENTHS` | 80 / 100 | **ESTIMATE** | G3, E7 |
+| `C_SETUP_HASH_OFFSET` / `C_SETUP_HASH_PRIME` | 2166136261 / 16777619 | algorithm | — |
+| `C_SETUP_PER_C_ROW` | false | decision | G3 |
+| `CUT_SETUP_MO_COLOR_MINUTES` | 5 | **ESTIMATE**, cutters only | T3, E2 |
+| `CUT_TRAVEL_MINUTES` | 1.5 | **ESTIMATE**, cutters only | T4, E3 |
+| `PULL_AHEAD_DAYS` | 1 | Rules Lab add-on value only | C4.1 |
+| `LAB_SHIFT_OPTIONS` | both / day / night | Rules Lab option | C4.2 |
+| `WEBSITE_MONTHS` | 2026-04, 05, 06 | scope | SIM10 |
+| `DATA_FILE`, `DATA_SHEET` | `data/PPC Planning - Old Data.xlsx`, `HaveCut` | input | — |
+| `PIN_DATA_FILE` | `data/planppc.xlsx` (the 20-date fixture; read only by `npm run regress`) | input | — |
 
-There is **no machine speed constant**: the 2026-11-06 `SPEED_FACTOR = 0.80` (an ESTIMATE) was
-removed on 2026-11-09, and spreading and cutting minutes are the G2 rates above.
+There is **no machine speed constant** (T1): spreading and cutting minutes are the G2 rates above.
 
 ## 4. Machines, layout and shifts
 
@@ -240,25 +233,27 @@ shift's end, minus the breaks that fall inside.
 | Day-only spreader or cutter | [0,270] [330,600] [630,765] | **675** |
 | 24-01/02/03, 24MC1 | [0,270] [330,600] [630,885] [915,1125] [1155,1305] | **1,155** |
 
-The night shift starts at 18:00 (`NIGHT_SHIFT = (645, 1305)`, user, 2026-11-09; it was 17:45
-in the code before). In the published model the start has no effect: the night machine's window
-simply runs on from 07:15 to 05:00 (`working_intervals` takes `min(NIGHT_SHIFT[0], 0)`). It only
-sets the Lab's "Night only" option, where a night machine is staffed 600 min a day (615 at 17:45).
+The night shift starts at 18:00 (`NIGHT_SHIFT = (645, 1305)`, B2). In the published model the start has
+no effect: the night machine's window simply runs on from 07:15 to 05:00 (`working_intervals` takes
+`min(NIGHT_SHIFT[0], 0)`). It only sets the Lab's "Night only" option, where a night machine is staffed
+600 min a day.
 
 **`occupy(spans, start, minutes)`**: snap `start` forward to the next span, then consume
-`minutes` span by span, jumping over gaps. If the spans run out, the remainder continues
-on the raw clock (the cold-start model's unlimited overtime, retired quirk Q6; the carry-over timeline
-appends enough synthetic staffed days that the spans never run out). Returns `[began, end]`.
+`minutes` span by span, jumping over gaps. The carry-over timeline appends enough synthetic staffed days
+(§18) that the spans never run out. Returns `[began, end]`.
 
 ## 5. Stage 2 — sequencing
 
-Each plan date is sequenced on its own, on the morning it starts, around what the machines still
-have committed (§18 step 4) — on the floor of 2026-11-09 (`A.LIVE_FLOOR = false`). On the live floor
-(§6b) the same sequencers run unchanged at every 30-minute re-plan, one plan date at a time. `sequence(tasks, mode, layout, initLoad, initCut, moOneGroup)` routes:
-`today` → `sequenceJobSeq` (S0, the real Job Sequence, from 2026-11-10); `today_grouped` →
-`sequenceToday` (the model's S0 until 2026-11-09, `npm run beforeafter` only); `moOneGroup` on → `sequenceMoAware` (the old S1–S3 rule, the
-**option "Keep an MO on one cut group"**, scenario field `mo_one_group`, default off); otherwise →
-`sequencePairs` (S1–S3, published). The output is `plan[machine] = ordered list of tasks`.
+On the live floor (§6b) the sequencers run at every 30-minute re-plan (LF1), one plan date at a time,
+around what the machines still have committed. `sequence(tasks, mode, layout, initLoad, initCut, moOneGroup)`
+routes:
+- `today` → `sequenceJobSeq` (S0, the real Job Sequence, A7);
+- `moOneGroup` on → `sequenceMoAware` (the option "Keep an MO on one cut group", C1.5; scenario field
+  `mo_one_group`, default off);
+- otherwise → `sequencePairs` (S1–S3, rule (a), C1.1–C1.4);
+- `today_grouped` → `sequenceToday`: the model's own S0 until 2026-11-09, kept only for `npm run beforeafter`.
+
+The output is `plan[machine] = ordered list of tasks`.
 
 **`pick_machine(candidates, load, work)`**:
 1. Among `candidates`, those with `load + work <= staffed × 0.70` → the one with the least load.
@@ -267,7 +262,7 @@ have committed (§18 step 4) — on the floor of 2026-11-09 (`A.LIVE_FLOOR = fal
 
 Ties go to the first in spreader order.
 
-**Mode `today` (S0, the real Job Sequence, `sequenceJobSeq`, user data `data/SQL Job Sequence Logic.sql`, `P_Task_Calculate`, core loop only; user answers 2026-11-09: pairing switch off, priority by the old commented rule, keep the 21.2 m table, core loop only, mirror the code as written):**
+**Mode `today` (S0, the real Job Sequence, `sequenceJobSeq`; `data/SQL Job Sequence Logic.sql`, `P_Task_Calculate`, core loop only, mirrored as written; the SQL's pairing switch is off, priority is the old commented rule, the 21.2 m table is kept):**
 
 *Pass 1: every table gets a cutter (SQL L2105-2344).*
 1. Tables in order of priority (`order_type`: SQR 0 < QR 1 < Normal = anything else 2, `ORDER_TYPE_PRIORITY`, an ESTIMATE), then plan order (row order of the date).
@@ -282,16 +277,14 @@ Ties go to the first in spreader order.
 
 There is **no `pick_machine`**: no 0.70 fill target and no spill to other groups (the SQL has neither). No changeover or moving in the plan: the floor physics (`carryTimeline`: G6 21.2 m, changeover 5 / moving 1.5, `FLEXIBLE_CUT` earliest-free cutter, breaks, carry-over) run the plan unchanged. **Not modelled (no data in HaveCut, or out of scope): material and roll readiness, pull-later / merged-pull / merged-batch links, PadPrint / small-order / abnormal / first-bed machine flags, marker width, rush inserts, table locks, the same-MO same-batch switch (`SameBatchMoTogether`, off today), the 22-minute default cut, the SQL's cutter overwrite after the loop (L10363, L11639; probably a bug), and the SQL's 2-lay limit per spreading table (the measured 21.2 m is kept).**
 
-**Mode `today_grouped` (the model's S0 until 2026-11-09, kept for `npm run beforeafter` only):**
+**Mode `today_grouped` (`npm run beforeafter` only):**
 1. Cluster by `(MO, colour, batch)`, keeping first-seen order.
 2. Sort clusters by total `spread_minutes`, descending (stable).
 3. For each cluster: cut group = `argmin(group_load / spreaders_in_group)`. Then sort its tasks by `spread_minutes` descending and place each one with `pick_machine(group's spreaders)`. Each placement updates the machine load and the group load.
 
 This **scatters** a cluster across the group's machines.
 
-**Modes `same_batch` (S1) and `cross_batch` (S2, S3)** — Change 1, rule (a), published since
-2026-11-09 (`sequencePairs`; user: "Pair first, count tasks and takt time by pairs, then maximise
-cutting-machine output; distribute back-to-back, not a whole MO to one cut group"):
+**Modes `same_batch` (S1) and `cross_batch` (S2, S3)**: Change 1, rule (a) (`sequencePairs`; C1.1–C1.4):
 1. Cluster by `(MO, colour)`, keeping first-seen order. Sort clusters by total spread, descending (this only sets the tie order of the units).
 2. Within a cluster, sort by `(str(batch) ascending, spread_minutes descending)`.
 3. Pass A, same batch: for each i, pair it with the first later j of the same batch where `can_combine(i, j, cross=True)` succeeds.
@@ -300,10 +293,10 @@ cutting-machine output; distribute back-to-back, not a whole MO to one cut group
 6. Each unit goes to the cut group with the smallest **busier side**: `max((group spread load + unit spread) / group spreader minutes, (group cut load + unit cut) / cutter minutes)`. The cut load starts from `initCut`, what each cutter still has to cut at the day's start in staffed minutes (the real cutter backlog, `carryTimeline`). Then `pick_machine(group, work = unit spread)` picks the spreader, and **both tasks of a pair are appended consecutively** (back-to-back on one spreader). Pairs of one MO + colour are therefore spread over the floor.
 7. The loads are credited to the machine's **real** cut group (`primary_cut[machine]`), because `pick_machine` can leave the chosen group (Q8). The cut-side credit goes to the spreader's primary cutter although `FLEXIBLE_CUT` lets 24-03 and 24-05 use a second cutter: an **approximation kept on purpose** (the timeline still picks the freer cutter).
 
-**The option "Keep an MO on one cut group"** (`sequenceMoAware`, the S1–S3 rule published on
-2026-11-06; scenario field `mo_one_group`, Lab option `moOneGroup`) is steps 1–5 above, then the cut
-group is chosen **once per cluster** = `argmin(group_load / n)` and every unit of the cluster is placed
-with `pick_machine(group, …)` in that group. It is case 2 of `npm run beforeafter` (§18); S0 ignores it.
+**The option "Keep an MO on one cut group"** (`sequenceMoAware`, C1.5; scenario field `mo_one_group`,
+Lab option `moOneGroup`) is steps 1–5 above, then the cut group is chosen **once per cluster** =
+`argmin(group_load / n)` and every unit of the cluster is placed with `pick_machine(group, …)` in that
+group. It is case 2 of `npm run beforeafter`; S0 ignores it.
 
 **`can_combine(a, b, cross)`** (used in sequencing and in loading):
 - `null` if either table is non-universal;
@@ -316,8 +309,11 @@ or workstation (QUIRK Q2).
 
 ## 6. Stage 3 — timeline (spreading, cutting, blocking)
 
-One timeline runs over **every plan date** (§18 for how the dates chain; there is no closed day and
-no empty start). State per spreader: `free` (when it is next free), `lays` (a list of
+This section is the per-table physics, shared by both floors. The published model dispatches it through
+the live floor (§6b); `A.LIVE_FLOOR = false` dispatches it once a day (the floor of 2026-11-09, §18,
+`npm run beforeafter` only).
+
+One timeline runs over **every plan date** (§18 for how the dates chain; R5: no empty start). State per spreader: `free` (when it is next free), `lays` (a list of
 `[length, table_free_from, cut_end]`). State per cutter: `cutFree` and `lastCut` (MO, colour, spreader
 of its last cut), both carried across plan dates.
 
@@ -331,19 +327,16 @@ For each table, taken from the spreader with the earliest next staffed instant (
 6. Push `[marker_length, min(cut_end, cut_start + setup + travel), cut_end]` onto the spreader's lays. Stamp the task with `machine, cutter, spread_start, spread_end, cut_start, cut_end, blocked_minutes, cut_wait, cut_setup_minutes, cut_travel_minutes`.
 
 Spreaders have only their own colour-change setup (the Type C row setup, inside `spread_minutes`):
-no extra spreader changeover or moving (user: "Spreaders do have but it's not necessarily need to be
-added here"). There is no end allowance per lay and no limit on how long a lay waits.
+no extra spreader changeover or moving (T6). There is no end allowance per lay and no limit on how long
+a lay waits.
 
-**Per-plan-date aggregates** (the Utilization and Simulation tabs; means of the daily values): see §18.
+**Per-plan-date aggregates** (means of the daily values): see §18.
 
-## 6b. The live floor — the published timeline since 2026-11-10 (`tools/floor.js`, `A.LIVE_FLOOR = true`)
+## 6b. The live floor — the published timeline (`tools/floor.js`, `A.LIVE_FLOOR = true`)
 
-User rules (2026-11-10): the Job Sequence "auto re-calculates every 30 mins, for all shifts, from the
-actual information of planning, relaxing time and marker"; the cutter operator "just chooses whichever
-he/she wants", with **the longest wait first** as the stand-in rule. One shared core, `Floor.run()`,
-is called by `model.js` (`carryTimeline`, live branch) and by the Lab engine, so they share the timeline
-by construction (Lab = model is still asserted on everything around it). §6 above is the floor of
-2026-11-09 (`A.LIVE_FLOOR = false`); the per-table steps (G6 21.2 m, staffed spans, changeover 5 /
+Rules A5–A6 (R1–R4, LF1–LF4). One shared core, `Floor.run()`, is called by `model.js` (`carryTimeline`,
+live branch) and by the Lab engine, so they share the timeline by construction (Lab = model is still
+asserted on everything around it). The per-table steps of §6 (G6 21.2 m, staffed spans, changeover 5 /
 moving 1.5, `FLEXIBLE_CUT`) are the same.
 
 **Readiness** (`rel`, minutes on the run's clock; a table starts at or after it):
@@ -368,15 +361,12 @@ its first plan date in the file, then relaxes 24 h. Fabric and marker are ESTIMA
    spreaders it serves (own group plus the second cutter of 24-03 / 24-05). Ties: earlier spreader, then
    earlier table. Setup and moving as before (Q19). This rule is an ESTIMATE.
 
-**A pair stays together** (rule (a); the SQL locks tables processed together): S1–S3 only. When the first
-table of a pair starts on a spreader, its partner (the next table of that queue that `canCombine` with it:
-same MO, colour, film, ≤ 4 trolleys; same batch unless cross-batch) is pinned as that spreader's next table
-and is not re-planned. Without it the re-plan split most pairs and S1 fell to 51.97% (a scratch run, not
-reproducible by a repo script: **unsourced**).
+**A pair stays together** (LF3, rule (a); the SQL locks tables processed together): S1–S3 only. When the
+first table of a pair starts on a spreader, its partner (the next table of that queue that `canCombine`
+with it: same MO, colour, film, ≤ 4 trolleys; same batch unless cross-batch) is pinned as that spreader's
+next table and is not re-planned.
 
 **Not modelled:** the SQL's table locks (first 2 tables per spreader), material and rolls, rush inserts.
-
-**Python:** no `model.py` / `floor.py` port of this section yet.
 
 ## 7. Stage 4 — loading (compartments, trolleys, combine, WIP hold)
 
@@ -463,8 +453,9 @@ Evaluated in this order:
 4. `stretch` if `is_batch_last`
 5. otherwise `normal`
 
-`cut_queue`, `no_fabric_time` and `neither` never fire. Colours are in `TASK_STATUS_COLORS`.
-(Since 2026-11-14 this is the old Simulation tab's status. The Lab's Gantt colours a bar `no_fabric_time` when its fabric is not ready at the cursor, and never checks the marker.)
+`cut_queue`, `no_fabric_time` and `neither` never fire in this order. Colours are in `TASK_STATUS_COLORS`.
+The website's Job Sequence Gantt (§17) colours a bar `no_fabric_time` when its fabric is not ready at the
+time cursor, and never checks the marker.
 `Spd_Remark5` (section 1) is a better stretch source than `is_batch_last`.
 
 ## 11. Quirks that change numbers
@@ -473,7 +464,7 @@ Each one must be reproduced to match the published results, or deliberately chan
 
 | # | Quirk | Effect |
 |---|---|---|
-| Q1 | **FIXED 2026-11-14** (user). The parked top-up used to check the **global** `MAX_BATCHES_PER_TROLLEY`, so "1 batch per trolley" with a WIP hold still mixed two batches. It now checks `min(scenario.max_batches, MAX_BATCHES_PER_TROLLEY)`. Still true: max_batches 2 and 3 give identical results (the floor's cap is 2) | only the 36 sweep keys with batches = 1 and a hold moved; the headline and the hold variants did not (stage (vi), §18). The page now enables 2 and 3 batches only under Cross-batch sequencing |
+| Q1 | **FIXED 2026-11-14** (user). The parked top-up used to check the **global** `MAX_BATCHES_PER_TROLLEY`, so "1 batch per trolley" with a WIP hold still mixed two batches. It now checks `min(scenario.max_batches, MAX_BATCHES_PER_TROLLEY)`. Still true: max_batches 2 and 3 give identical results (the floor's cap is 2) | only the 36 sweep keys with batches = 1 and a hold moved; the headline and the hold variants did not (stage (vi), [HISTORY](docs/HISTORY.md)). The page enables 2 and 3 batches only under Cross-batch sequencing (C2.2) |
 | Q2 | `can_combine` doesn't check film, component or workstation | film is handled per compartment; component can't be checked; workstation is implied by adjacency |
 | Q3 | `combines` counts only multi-batch events | same-batch combines are invisible in the count |
 | Q4 | `sequence_mo_aware` (now the option "Keep an MO on one cut group") and `sequence_pairs` (the published S1–S3 pairing) call `can_combine(…, cross=True)` in both passes | the pass list, not the call, decides cross-batch pairing |
@@ -493,7 +484,7 @@ Each one must be reproduced to match the published results, or deliberately chan
 | Q18 | Composite keys in JS use a `\x01` separator | avoids `'AB'+'C'` vs `'A'+'BC'` collisions |
 | Q19 | Cutter changeover and moving (2026-11-09, ESTIMATES 5 / 1.5 min): the spreading table stays occupied through them. The lay's table-free time is `min(cut_end, cut_start + setup + travel)` on the **raw clock**, so a break inside the changeover starts the freeing early (capped at `cut_end`). `lastCut` carries across plan dates. Spreaders have no changeover or moving, only their own C setup. Mirrored from the Lab, **documented, not fixed** | more changeover can only delay table freeing, never speed it; the cutters' output falls with it (§17) |
 | Q20 | S0's "closest to the cutter's gap" rule never runs (SQL L3715, L3773-3777, L3889-3965) | every new table goes shortest spreading time first. Mirrored as written, not the intent in the SQL's comment. Whether the live system behaves differently is not known |
-| Q21 | S0 balances spreaders by spreading minutes, **not divided by shift minutes**, and cutters by minutes ÷ the number of spreaders on them (1/(cutters mapped)) | the three night-capable spreaders (1,155 staffed min) get the same minutes as the day-only ones (675), and 24MC2 / 24MC3 (1.5 and 2 spreaders) are loaded about 70–74% of staffed time against about 55% for 24-08..13 and about 47% for 24-01..03 (`tools` scratch diagnostic, 2026-11-10). This, not pairing, is most of the S0 → S1 difference at stage (iv) |
+| Q21 | S0 balances spreaders by spreading minutes, **not divided by shift minutes**, and cutters by minutes ÷ the number of spreaders on them (1/(cutters mapped)) | the three night-capable spreaders (1,155 staffed min) get the same minutes as the day-only ones (675), and 24MC2 / 24MC3 (1.5 and 2 spreaders) are loaded about 70–74% of staffed time against about 55% for 24-08..13 and about 47% for 24-01..03 (`tools` scratch diagnostic, 2026-11-10; not reproducible by a repo script). This, not pairing, is most of the S0 → S1 difference ([HISTORY](docs/HISTORY.md), stage (iv)) |
 | Q22 | S0 ties: tables with equal priority and spreading time go by plan order (row order); spreaders with equal load by spreader order | the SQL leaves ties undefined (`TOP 1` with no unique key); the model needs a deterministic rule |
 | Q23 | S0's priority is an ESTIMATE (`ORDER_TYPE_PRIORITY`); the live `Job_Seq_Schedule_Priority` was not supplied. In the April–June data 6,499 of 6,501 tables are QR, so the priority hardly decides anything | S0 would change only if the live priority table does |
 | Q24 | The live floor re-plans every 30 min, plan date by plan date, and the "ready" set is cut off at 24 h of spreader capacity | a spreader that empties its queue between ticks waits for the next tick; tables beyond the horizon are not planned yet |
@@ -503,89 +494,57 @@ Each one must be reproduced to match the published results, or deliberately chan
 | Q28 | Results depend on the export's row order | S0's plan order, ties and the cutter's tie-break use row order; `npm run regress` R1 compares the two workbooks in one row order, and reports the as-loaded order too |
 | — | `FLEXIBLE_CUT` approximation in `sequence_pairs`: the cut-side load of a table is credited to its spreader's primary cut group, although 24-03 and 24-05 may be cut by a second cutter (the timeline picks the freer one) | the cutter balance in the planner is slightly off for those two spreaders |
 
-## 12. Measurement-only extensions and their results (April–June)
+## 12. Measurement scripts and their results
 
-None of these feeds the build or the headline.
+None of these feeds the build or the headline. Scope is April–June unless the row says otherwise.
 
 | Table | Script | What it adds | Result |
 |---|---|---|---|
-| T-C | `tools/tc_table.js` | cutter count 5–8 | `npm run tc`, ported to carry-over 2026-11-09 (carry-over, G2 pace, changeover 5 / moving 1.5 ESTIMATES): from 5 to 6–8 cutters S0 +1.28 to +1.51 pt utilization and −39 to −47 fleet at the 7-day trip; S1 0.00 and S2 −0.01 to −0.02 pt; S3 +0.69 to +0.82 pt and −11 to −13 fleet. The old cold-start figures are printed beside, marked HISTORICAL |
+| T-C | `tools/tc_table.js` | cutter count 5–8 against trolley numbers | `npm run tc` (live floor, changeover 5 / moving 1.5 ESTIMATES, fleet at the 7-day ESTIMATE). From 5 to 6–8 cutters: S0 +0.09 to +0.15 pt utilization, fleet −3 to −4; S1 −0.06 to −0.02 pt; S2 −0.20 to +0.05 pt; S3 +0.25 to +0.44 pt, fleet −4 to −7. Spreader blocking falls from 4.1% to 1.5–1.7% (S0). The cutter count barely moves the trolley numbers |
+| Ceiling | `tools/util_ceiling.js` | utilization with ideal packing and no timing (5,384 universal-size tables) | `npm run ceiling`: each table alone 51.2%; one batch per trolley, waiting all plan date 66.9%; MO + colour + film with at most 2 batches 79.5%; any number of batches 82.9%; waiting the whole period 90.7% (not real) |
 
-**HISTORICAL (cold-start model, retired 2026-11-09; no longer reproducible).** T-E
-(`warmstart_table.js`: carry state over, or cut off at shift end and defer; <0.5 pt on the cold-start
-headline) and T-F (`pullahead_table.js`: a continuous staffed timeline with pull-ahead) were measured
-on the cold-start model and their scripts were deleted. Their findings are superseded by the
-carry-over floor (§18), where work is always left from the day before, and by the Lab's pull-ahead
-add-on (§17). The numbers below are kept only as a record.
+| Idle time | `tools/idle_variants.js` | blocking, cut groups, routing and table-length fixes, the cutter ladder | `npm run idle`, full file (199 dates), S0. Results and their reading: [docs/IDLE_TIME.md](docs/IDLE_TIME.md) |
+| Data model | `tools/data_model.js` | entities, attributes, parameters with current values, formulas, data statistics | `npm run datamodel`: [docs/DATA_MODEL.md](docs/DATA_MODEL.md) and `docs/data_model/*.csv`; `-- --check` fails if they are out of date |
+| Validation | `tools/carryover_probe.js` | the model's lateness against the real Pull Date | `npm run carryprobe`, §18 |
+| Before / after | `tools/before_after.js` | every published change, stage by stage, with asserts | `npm run beforeafter`, [docs/HISTORY.md](docs/HISTORY.md) |
 
-**T-F, pull-ahead** (S0 / S3; HISTORICAL):
-- Overtime: 231 + 291 machine-min/day → 0.
-- Tables cut after their own day's 05:00: 2.6% / 2.1%.
-- Day's plan fully cut by: 18:21 / 15:28 on average.
-- **Capacity ladder** (`--capacity`), tables per staffed day, plan = 82.3:
-
-| Reach ahead | S0 | S3 |
-|---|---|---|
-| 0 | 82.5 | 82.5 |
-| 1 | 83.1 | 83.1 |
-| 2 | 84.1 | 84.2 |
-| 5 | 86.2 | 87.6 |
-| all | 86.0 | **88.9 (+8%)** |
-
-  The ceiling is 24MC4 and 24MC5: pull-ahead only lets a machine take work from its own queue.
-
-**Cutter changeovers per day** (all 5 cutters; HISTORICAL scratch probe of 2026-11-05 on the
-cold-start model, **not reproducible by a repo script**; the live changeover is Q19 and the
-lost-time figures in §17):
-
-| | S0 | S2 |
-|---|---|---|
-| Same batch | 25.3 | 13.1 |
-| Same MO + colour, different batch | 4.1 | 27.9 |
-| Different | 47.9 | 36.4 |
-| Marker width changes | ~48 | ~48 |
-
-Change 1 halves same-batch runs on the cutter. With a 5 min full / 1 min light setup:
-- If only the same batch counts as light: +48 setup min/day (worse).
-- If the same MO + colour also counts as light: −47 min/day (better).
-
-The 5 min / 1 min setup times in that probe were placeholders (the published 5 / 1.5 min are
-ESTIMATES too).
+Measurements that are no longer reproducible (cold-start tables T-B, T-E, T-F, the 2026-11-05 cutter
+changeover probe) are kept in [docs/HISTORY.md](docs/HISTORY.md) and the archive.
 
 ## 13. Not modelled, estimated, or missing
 
 | Item | Status | Direction of the error |
 |---|---|---|
-| Trolley round trip (7 days) | ESTIMATE | decides the whole fleet case; the break-even is 6.1 days for S0 (`longest_sustainable_cycle_days` 6.13, April–June headline) |
-| Moving a parked trolley to another workstation | not modelled | Change 3 was worth +5.9 pt if possible, +0.5 pt if not (HISTORICAL, cold-start model; not re-measured) |
-| Cutter changeover (5 min) | **ESTIMATE, in the published model** (Q19) | MO or colour change only; marker width, graphic letter and batch changes are not triggers; not timed on the floor |
-| Cutter moving between spreaders (1.5 min) | **ESTIMATE, in the published model** (Q19) | not timed on the floor |
-| Spreader changeover and moving | not modelled (only the Type C setup) | real spreaders lose some time to both (user: not needed here) |
-| Machine speed | G2 standard pace; **no speed factor** (removed 2026-11-09) | the model is less late than the real floor (17.78% of tables late against 51.25%, `npm run carryprobe`): something slows the real floor that the model does not have |
+| Trolley round trip (7 days) | ESTIMATE (E1) | decides the whole fleet case; the fleet covers 5.89 days for S0 and 7.91 days for S3 (`longest_sustainable_cycle_days`, April–June headline) |
+| Moving a parked trolley to another workstation | not modelled (C3.4) | a 1 h hold is worth +6.28 pt over no hold with any-workstation recall and +0.25 pt with same-workstation recall (hold variants, `out/results.json`) |
+| Cutter changeover (5 min) | **ESTIMATE, in the published model** (T3, Q19) | MO or colour change only; marker width, graphic letter and batch changes are not triggers; not timed on the floor |
+| Cutter moving between spreaders (1.5 min) | **ESTIMATE, in the published model** (T4, Q19) | not timed on the floor |
+| Spreader changeover and moving | not modelled (T6; only the Type C setup) | real spreaders lose some time to both |
+| Machine speed | G2 standard pace, no speed factor (T1) | the model is less late than the real floor (25.98% of tables late against 51.25%, `npm run carryprobe`): something slows the real floor that the model does not have |
 | Lay end allowance | not modelled | real blocking is higher |
 | Progressive spreading (`LAY_NEEDS_FULL_LENGTH`) | conservative | real blocking is lower |
 | Different table lengths per machine | one value for all | — |
 | Breaks stop machines | unconfirmed | ±150 min per machine per day |
-| C-table setup 8–10 min | ESTIMATE | small (T-B: 0.06 pt; HISTORICAL, cold-start model) |
+| C-table setup 8–10 min | ESTIMATE (E7) | small (0.06 pt on the retired cold-start model; not re-measured) |
 | T1/P/T/R/L/W rows (443) | excluded | machine load under-counted |
 | Kids and number sizes (J3) | no compartments | trolleys/day conservative: ~60,200 pieces/day reach trolleys in Apr–Jun (the 20-date export: ~68,700 of ~90,000) |
 | Net_Rate | substituted by H5 | utilization conservative |
 | Component | absent in the model; present in `Spd_Remark` | ~single "Body" component |
-| Fabric relaxing | assumed satisfied | can't measure how often it binds |
+| Fabric arrival | ESTIMATE (R4, E4) | the data has no arrival or relax-start time; the arrival window decides when part of the tables can start (§6b) |
 | Actual machine per table | absent | the sequence can't be validated against the floor |
-| Trolley pool | unlimited | the S0 shortage never throttles output in the model (~12% if it did; HISTORICAL cold-start estimate, not re-measured) |
-| Loading labour and transport | not modelled | the fewer trolleys a day (S0 195.9 → S3 148.4, April–June) are not converted to hours |
+| Trolley pool | unlimited | the S0 shortage never throttles output in the model (about 12% if it did, on the retired cold-start model; not re-measured) |
+| Loading labour and transport | not modelled | the fewer trolleys a day (S0 203.8 → S3 151.7, April–June) are not converted to hours |
 | Multi-day state | carry-over floor (§18) | machines and cutters carry work across plan dates; **loading** does not (parked trolleys do not carry into the next date) |
 | Shrinkage and shade lot | absent | batch merging at spreading untested |
 
-## 14. Validation targets for a rebuild
+## 14. Validation targets
 
 **Data** (full file): 22,638 rows · 15,928 B · 15,923 after the First Table test · **15,920 tasks** · 6,269 with a C setup (mean 9.0088 min).
 
-**Headline, April–June** (79 dates, 6,501 tables, 5 cutters, 21.2 m; carry-over floor, G2 standard
-pace, cutter changeover 5 min and moving 1.5 min (ESTIMATES), pairs rule for S1–S3; the fleet row is
-at the 7-day trip, an ESTIMATE; **S0 = the real Job Sequence and the floor is live, since 2026-11-10**).
-Full-precision source: `out/results.json` (`npm run beforeafter` stage (v) asserts it). Rounded here:
+**Headline, April–June** (79 dates, 6,501 tables, 5 cutters, 21.2 m; live carry-over floor, G2 standard
+pace, cutter changeover 5 min and moving 1.5 min (ESTIMATES), S0 = the real Job Sequence, pairs rule for
+S1–S3; the fleet row is at the 7-day trip, an ESTIMATE). Full-precision source: `out/results.json`
+(`npm run beforeafter` asserts that its last stage equals it). Rounded here:
 
 | | S0 | S1 | S2 | S3 |
 |---|---|---|---|---|
@@ -595,518 +554,32 @@ Full-precision source: `out/results.json` (`npm run beforeafter` stage (v) asser
 | fleet @ 7 days | 1,426 | 1,231 | 1,171 | 1,062 |
 | against 1,200 owned | 226 short | 31 short | 29 spare | 138 spare |
 
-(Before the live floor, the same day: S0 51.9196% / 203.4937 / peak 326 / fill 76.001 / 295.95 pieces per
-trolley / blocked 31.819% = 3,701.6 min / fleet 1,424.5; S1 58.7535 / 173.6456; S2 64.6739 / 157.7848;
-S3 68.7674 / 148.3924 / 1,038.7; `npm run beforeafter` stage (iv) asserts it.)
+Cutter output, April–June (`npm run lab`, Rules Lab engine): real plan (80,833 pieces planned a day) S0
+80,216, S1 80,222, S3 80,211 pieces cut a day; 100k plan S0 96,700, S1 96,576, S3 97,119. Earlier
+headlines and how they moved: [docs/HISTORY.md](docs/HISTORY.md).
 
-(The S0 column before 2026-11-10, the model's own `today_grouped` S0: 53.4897% / 195.9114 trolleys a day /
-peak 320 / fill 76.625 / 307.40 pieces per trolley / blocked 26.500% = 2,256.0 min / fleet 1,371.4;
-`npm run beforeafter` stage (iii) asserts it.)
-
-HISTORICAL (cold-start model, retired 2026-11-09; no longer reproducible): the cold-start headline
-was S0 53.8049% / 194.3544 trolleys a day, S3 71.3712% / 143.0000, fleet 1,360.5 / 1,001.0, and the
-original 20-date fixture S0 53.64% / 227.6 trolleys/day. The 2026-11-06 carry-over build at speed
-0.80 was S0 52.49% / 201.1 / 1,408 and S3 69.77% / 146.2 / 1,024 (reproduced by `npm run
-beforeafter` stage (0), §18).
-
-**Gates** (the pin against `out/*.bak` was retired on 2026-11-09; no gate reads the `.bak` files):
+**Gates** (all must pass before anything is published, SIM11):
 - `npm run lab`: Lab = model, exactly (§17).
 - `npm run regress`: 18 shared dates × 117 scenarios = 33,696 checks, on `runCarry()`; a reader check
-  of the 20-date export against the 199-date workbook, not a check against Python.
-- `npm run parity`: the page's loader against the model, across the 3 month files.
-- An Edge check of the Utilization, Simulation and Lab tabs.
-- `npm run beforeafter`: stage (0) reproduces the 2026-11-06 headline, stage (iii) the 2026-11-09 headline, stage (iv) equals `out/results.json`; S1–S3, the hold variants and the 78 non-`today` sweep keys are bit-identical from (iii) to (iv).
-
-## 15. Decisions to make before rebuilding
-
-1. **Day boundary. Decided (user, 2026-11-06 and 2026-11-09): no cold start, ever.** The carry-over floor (§18) is the only model; the closed-day model was removed.
-2. **Machine assignment.** Keep fixed per-machine queues (published), or let a free spreader take the next relaxed table from any queue (the Lab's dynamic dispatch add-on)? This is where the remaining capacity is.
-3. **Cutter setup. Decided in form, still ESTIMATED in size** (user, 2026-11-09): changeover 5 min on an MO or colour change, moving 1.5 min on a different spreader, cutters only, in the published model (Q19). Neither minute count has been timed on the floor; marker width and graphic letter are not triggers.
-4. **Machine speed. Decided: removed** (user, 2026-11-09: "If it doesn't related to anything, then remove it"). The model runs at the G2 standard pace and is less late than the real floor (§18). Open: what slows the real floor.
-5. **Trolley pool.** Limit it to 1,200, with a return delay = cycle time, so a shortage can stop cutting?
-6. **Data upgrades.** Read component from `Spd_Remark`, stretch from `Spd_Remark5`, and setup from C1/C2. Decide whether to admit T1/P/T/R/L/W rows.
-7. **Validation.** `npm run carryprobe` compares the model's lateness with `Pull Date` (nothing is tuned to it); the 378 `Cut Date` rows give the Pull → Cut gap (median 82 min), not yet used.
-8. **Quirks.** Decide which of Q1–Q4, Q8–Q15, Q17–Q19 to keep for continuity and which to fix, each with a before/after table (Q5–Q7 and Q16 are retired).
-9. **Floor measurements still needed:** trolley round trip, how a trolley moves between workstations, **changeover and moving minutes**, whether breaks stop machines, per-table lengths, and floor space for longer tables.
-
-## 18. The carry-over floor — the published model since 2026-11-06 (and how it got to today's numbers)
-
-**User rule (2026-11-06): there is no cold start; there is always work left from the day before at the
-spreading and cutting machines.** The model before that date ran every plan date as a closed
-day with empty machines at 07:15, which hid the leftover completely. The published model is
-`runCarry()` (`tools/model.js`) / `run_carry()` (`model.py`). On 2026-11-09 the closed-day
-model (`run()` / `run_day()` / `run_timeline()`), its Lab floor, `tools/pin.js` (the only independent
-check against `out/*.bak`; the `.bak` files stay on disk, untouched, and no gate reads them),
-`warmstart_table.js` and `pullahead_table.js` were **removed** (user: "there will never be a
-cold start"). The one-day-at-a-time text of §1–§17 that still mentions the closed day is marked
-HISTORICAL where it is kept.
-
-**Algorithm of the floor of 2026-11-09 (`carryTimeline` with `A.LIVE_FLOOR = false`; the live floor, the
-published one since 2026-11-10, is §6b), cached per days object and per mode, `moOneGroup`, layout, table
-length, the two cutter constants and the live-floor constants**
-
-1. All in-scope plan dates are run together. `off[d]` = calendar minutes from the first date's
-   07:15 to date d's 07:15 (so weekends are skipped by calendar, not by shift).
-2. Every task's minutes are the G2 rates times marker length and layers (C-setup is inside
-   spread). **There is no machine speed factor** (the 2026-11-06 ESTIMATE of 0.80 was removed on
-   2026-11-09, see the staged table below).
-3. Staffed spans repeat on every plan date, plus synthetic consecutive days after the last,
-   `min(3000, ceil(2 × max(Σspread / Σspreader staffed per day, Σcut / Σcutter staffed per day)) + 14)`,
-   so the last tables finish on staffed hours. There is **no overtime on the raw clock**: work that
-   does not fit waits for the next shift.
-4. Plan dates are processed in order. On the morning of date d the planner sequences d's tables
-   with `machineLoad[m] = staffedBetween(spans[m], off[d], free[m])` (what each spreader still has
-   committed), the group loads seeded from it, and `initCut[c] = staffedBetween(cutter spans, off[d], cutFree[c])`
-   (what each cutter still has to cut; read by `sequencePairs` only, §5). `pickMachine`'s fill target
-   then sends work to whoever has the most room; when no machine has room it falls back to the
-   lowest `load / staffed`, as before.
-5. That date's queues are then dispatched until empty: pick the spreader with the earliest next
-   **staffed** instant (`advance(spans, free)`); if that instant is before `off[d]` the date has not
-   begun, so `free = off[d]` and the loop continues; otherwise take its next table and run the
-   per-table steps of §6 (G6 table length from the **effective** start, spread on staffed spans,
-   the cutter with the smaller `cutFree` among the F8 candidates, cutter changeover and moving
-   (Q19), cut on its staffed spans).
-6. Lays older than the effective start are dropped from the G6 list (identical results, faster).
-7. **Loading stays per plan date**: a date's tables are loaded in the order they finish cutting,
-   parked trolleys do not carry into the next date's loading, and `loadTrolleys()` /
-   `__SIM.loadTrolleys()` are the unchanged functions.
-
-**Per-plan-date idle-time figures** (the Utilization and Simulation tabs; means of daily values):
-spreading blocked % = Σ staffed G6 wait ÷ Σ(spread + wait) over that date's tables; cutting blocked %
-= Σ cutter wait ÷ Σ(cut + wait); makespan = the date's last spreading end minus its 07:15;
-blocked minutes = Σ staffed G6 wait; **overrun minutes** = staffed spreading minutes of that date's
-tables after their machine's own window closed; **machines past their window** = spreaders still
-spreading that date's tables after their window. These are not comparable one-to-one with the
-HISTORICAL cold-start figures (which counted a raw wall-clock wait inside a closed day).
-
-### The staged before / after (`npm run beforeafter`, April–June, 79 plan dates, 6,501 tables)
-
-Five live stages, one change at a time, all computed by the script. Stage (0) is the model as published
-on 2026-11-06; stage (iii) is the published model of 2026-11-09 (its headline is frozen in the script);
-stage (iv) is the published model now and equals `out/results.json` (asserted). Stages (0)–(iii) run S0
-as `today_grouped`; stage (iv) runs it as the real Job Sequence. The tables below show stages (0)–(iii)
-as they were; stage (iv) has its own block after them.
-Stages (0)–(ii) reproduce the removed speed by a **measurement-only scaling** (`OLD_SPEED` 0.80, the
-2026-11-06 calibration, an ESTIMATE, no longer in the model: a copy of the days with each task's
-spread and cut minutes divided by 0.80); the assert that stage (0) equals the 2026-11-06 headline at the
-printed precision proves it reproduces the old speed. Fleet = trolleys a day × 7 days (ESTIMATE, never
-timed); 1,200 owned.
-
-| Stage | S1–S3 rule | Cutter changeover / moving | Pace |
-|---|---|---|---|
-| (0) published 2026-11-06 | keep an MO on one cut group | none | G2 ÷ 0.80 (old ESTIMATE) |
-| (i) + pairs rule | pairs over the floor, back-to-back (§5) | none | G2 ÷ 0.80 |
-| (ii) + changeover and moving | pairs over the floor | 5 min / 1.5 min (ESTIMATES, Q19) | G2 ÷ 0.80 |
-| (iii) + no speed factor = published 2026-11-09 | pairs over the floor | 5 min / 1.5 min (ESTIMATES) | G2 standard |
-| (iv) + S0 = the real Job Sequence = published now | pairs over the floor (S1–S3 unchanged) | 5 min / 1.5 min (ESTIMATES) | G2 standard |
-
-**Trolley findings** (`model.runCarry()`, tables loaded per plan date):
-
-| | | (0) | (i) | (ii) | (iii) |
-|---|---|---|---|---|---|
-| Utilization % | S0 | 52.49 | 52.49 | 52.03 | **53.49** |
-| | S1 | 58.75 | 58.75 | 58.75 | **58.75** |
-| | S2 | 64.65 | 64.64 | 64.67 | **64.67** |
-| | S3 | 69.77 | 68.13 | 67.95 | **68.77** |
-| Trolleys / day | S0 | 201.1 | 201.1 | 203.4 | **195.9** |
-| | S1 | 173.6 | 173.6 | 173.6 | **173.6** |
-| | S2 | 157.8 | 157.8 | 157.8 | **157.8** |
-| | S3 | 146.2 | 149.7 | 150.2 | **148.4** |
-| Fleet @ 7-day trip (ESTIMATE) | S0 | 1,408 | 1,408 | 1,424 | **1,371** |
-| | S1 | 1,216 | 1,216 | 1,216 | **1,216** |
-| | S2 | 1,105 | 1,105 | 1,104 | **1,104** |
-| | S3 | 1,024 | 1,048 | 1,051 | **1,039** |
-| Peak trolleys in a day | S0 | 323 | 323 | 326 | **320** |
-| | S3 | 229 | 228 | 229 | **230** |
-
-Sweep keys that moved against the stage before (of 117, utilization, trolleys a day or peak): (i) 76
-(none of the 39 `today` keys), (ii) 116 (all 39 `today` keys), (iii) 116 (all 39); the 5 hold variants
-move at every stage. The full table (all hold variants, fleet gap, peaks) is the script's output.
-
-What each step does, and no more:
-- **(0) → (i), the pairs rule.** S0 is bit-identical (it ignores the option). S3 falls 69.77 → 68.13% and
-  needs 24 more trolleys of fleet (1,024 → 1,048). A **trolley finding**, independent of cutter
-  output (S3 case 1 against case 2 at the published floor: 68.77% against 70.37%). The script does
-  not isolate why; a cause is not claimed here.
-- **(i) → (ii), changeover and moving.** S0 52.49 → 52.03%, S3 68.13 → 67.95% (cut end times move,
-  and the loading order and the WIP hold follow them).
-- **(ii) → (iii), no speed factor.** S0 52.03 → 53.49%, S3 67.95 → 68.77%.
-- **S1 does not move at all** (58.75 / 173.6 / 1,216) in any stage: its pairing depends on adjacency
-  within a machine's queue, not on timing.
-
-**Cutter output findings** (Rules Lab engine on the same floor, pieces the **cutters** cut; separate
-from the trolley findings above and never traded against them). Real plan: 80,833 pieces planned a day;
-100k plan: the same tables dealt into 63 dates of at least 100,000 pieces, 34 tail tables unplaced.
-
-| Pieces cut a day | | (0) | (i) | (ii) | (iii) |
-|---|---|---|---|---|---|
-| Real plan | S0 | 80,107 | 80,107 | 75,594 | **80,649** |
-| | S1 | 79,028 | 80,191 | 75,817 | **80,671** |
-| | S3 | 79,408 | 80,084 | 75,999 | **80,711** |
-| 100k plan | S0 | 85,961 | 85,961 | 77,408 | **94,961** |
-| | S1 | 84,680 | 86,228 | 77,892 | **94,867** |
-| | S3 | 84,746 | 86,807 | 77,799 | **95,195** |
-| Hours per 100k pieces, real plan | S0 / S3 | 27.1 / 27.4 | 27.1 / 27.1 | 29.0 / 28.7 | **27.0 / 26.9** |
-| Hours per 100k pieces, 100k plan | S0 / S3 | 25.7 / 26.1 | 25.7 / 25.4 | 28.2 / 28.1 | **23.0 / 23.0** |
-
-At stage (iii), the published floor: S0 cuts 80,649 a day on the real plan (80,833 planned) and 94,961
-on the 100k plan, **4,805 to 5,133 short of 100,000** for the three rules (S0 94,961 → S3 95,195 is
-the best case); 360,412 to 381,079 pieces are uncut at the end of the 100k plan, and 12 of 63 days
-(S0, S1) or 14 of 63 (S2, S3) reach 100,000. Without changeover and moving, the same 100k plan S0 cuts
-99,832 a day and reaches 100k on 34 of 63 days (the "below the published floor" block of `npm run lab`).
-Changeover and moving cost cutter output in the model, and both are ESTIMATES.
-
-**Rule (a), two ways, at the standard pace** (stage (iii) floor; `npm run beforeafter` last block,
-`npm run lab` "RULE (a) TWO WAYS"). Case 1 = pairs over the floor (published); case 2 = keep an MO on
-one cut group (the 2026-11-06 rule). Differences from S0 are small in both:
-
-| Cutter output vs S0 | S1 | S2 | S3 |
-|---|---|---|---|
-| Case 1, real plan | +0.03% | +0.08% | +0.08% |
-| Case 1, 100k plan | −0.10% | +0.25% | +0.25% |
-| Case 2, real plan | +0.05% | +0.05% | +0.05% |
-| Case 2, 100k plan | −0.02% | +0.04% | +0.04% |
-
-Every difference is under 0.3%: at the standard pace the cutters are no longer the bottleneck (cutter
-cutting share of staffed time ≈ 70% on the real plan, 82% on the 100k plan); **the spreaders are**, so
-pairing the work differently cannot raise cutter output much. With the old speed 0.80 and changeover
-(the stage (ii) floor, both cases printed by the script) the order of cutter output was case 1 >
-S0 > case 2, the user's expectation: S3 against S0 on the real plan +0.54% (case 1, 75,999 a day) and
-−0.25% (case 2, 75,407); on the 100k plan +0.51% and −0.74%. At the standard pace the order is gone. The trolley findings differ more: S3 is 68.77% / 148.4 /
-1,039 with case 1 and 70.37% / 145.1 / 1,015 with case 2 (published floor, `npm run beforeafter`).
-Which of the two to keep is the user's decision; the model keeps case 1.
-
-**The conclusion that the three changes bring the requirement under the 1,200 owned still holds**
-(S3: 1,039 needed, 161 spare at the published floor; S1 still 16 short, S0 171 short), and it rests on
-the unmeasured 7-day trip and on the unmeasured changeover and moving minutes.
-
-### Stage (iv): S0 becomes the real Job Sequence (2026-11-10; `npm run beforeafter`)
-
-Only S0 and the 39 `today` sweep keys move; S1, S2, S3, the 5 hold variants and the other 78 keys are
-bit-identical to stage (iii) (asserted). The two findings are separate and never traded.
-
-**Trolley findings** (`model.runCarry()`; stage (iii) → (iv)):
-
-| | (iii) S0 grouped | **(iv) S0 real Job Seq** | S1 | S3 |
-|---|---|---|---|---|
-| Utilization % | 53.49 | **51.92** | 58.75 | 68.77 |
-| Trolleys / day | 195.9 | **203.5** | 173.6 | 148.4 |
-| Fleet @ 7-day trip (ESTIMATE; 1,200 owned) | 1,371 (171 short) | **1,424 (224 short)** | 1,216 (16 short) | 1,039 (161 spare) |
-| Peak trolleys in a day | 320 | **326** | 272 | 230 |
-
-**Cutter output findings** (Rules Lab engine, pieces the **cutters** cut; same floor in every column):
-
-| Pieces cut a day | (iii) S0 grouped | **(iv) S0 real Job Seq** | S1 | S3 |
-|---|---|---|---|---|
-| Real plan (80,833 planned a day) | 80,649 | **72,593** | 80,671 | 80,711 |
-| 100k plan (63 dates, 34 tail tables unplaced) | 94,961 | **71,279** | 94,867 | 95,195 |
-| Hours per 100k pieces, real / 100k plan | 27.0 / 23.0 | **30.8 / 32.9** | 27.0 / 23.1 | 26.9 / 23.0 |
-| Pieces uncut at the end, real / 100k plan | 14,592 / 375,161 | **650,964 / 1,867,122** | 12,808 / 381,079 | 9,675 / 360,412 |
-| Days reaching 100k (of 63) | 12 | **0** | 12 | 14 |
-
-Cutter lost time, real plan, hours a day over the 5 cutters (setup / moving / waiting for a table):
-S0 real Job Seq 5.3 / 1.1 / 18.4 (grouped S0: 4.7 / 1.5 / 13.0); S1 6.1 / 1.6 / 11.4. The cutters cut
-61.5% of their staffed time under the real Job Sequence S0 against 70.2% under the grouped S0 and
-70.3% under S1.
-
-What this shows, and what it does not:
-- **The real Job Sequence loads the floor unevenly** (Q21): the cutters wait for tables (18.4 h a day)
-  because 24MC2 / 24MC3's spreaders run at about 70–74% of their staffed time while 24-01..03 sit near 47%.
-  That is the SQL's balancing by spreading minutes, as mirrored; it is the model's reading of a
-  core loop, with the material, merge, lock and machine-flag rules left out (§5).
-- **S0 → S1 is now two changes**, a different dispatcher and pairing. The +11.1% (real plan) and +33.1%
-  (100k plan) cutter output of S1 over S0 is **not** the pairing rule: S1's own dispatcher
-  (`sequencePairs`) balances spreaders and cutters by their staffed minutes. The script does not
-  separate the two; a one-rule S1 (S0 with the SQL's own `SameBatchMoTogether` switch on) is a possible
-  later, announced change. The trolley gain (51.92 → 58.75%) mixes the same two things.
-- Case 1 (pairs over the floor) against case 2 (keep an MO on one cut group) at stage (iv): S3 68.77% /
-  148.4 / 1,039 against 70.37% / 145.1 / 1,015; cutter output 80,711 against 80,688 (real plan), 95,195
-  against 95,000 (100k plan).
-- **A fleet reading:** with the real Job Sequence S0 the fleet needed at the 7-day trip is 1,424 (224
-  short of 1,200); S1 1,216 (16 short); S3 1,039 (161 spare). All on the unmeasured 7-day trip and the
-  unmeasured changeover and moving minutes.
-
-### Stage (v): the floor becomes live (2026-11-10; `npm run beforeafter`)
-
-Stages (0)–(iv) run the floor of 2026-11-09 (`A.LIVE_FLOOR = false`); stage (v) is the live floor (§6b).
-Every sweep key moves; the two findings are separate and never traded.
-
-**Trolley findings** (`model.runCarry()`, stage (iv) → (v)):
-
-| | (iv) S0 | **(v) S0** | S1 (iv → v) | S2 (iv → v) | S3 (iv → v) |
-|---|---|---|---|---|---|
-| Utilization % | 51.92 | **51.85** | 58.75 → 58.19 | 64.67 → 61.17 | 68.77 → 67.45 |
-| Trolleys / day | 203.5 | **203.8** | 173.6 → 175.8 | 157.8 → 167.3 | 148.4 → 151.7 |
-| Fleet @ 7-day trip (ESTIMATE; 1,200 owned) | 1,424 | **1,426** | 1,216 → 1,231 | 1,104 → 1,171 | 1,039 → 1,062 |
-
-**Cutter output findings** (Rules Lab engine, pieces the cutters cut, same floor in every column):
-
-| | (iv) S0 | **(v) S0** | S1 | S2 | S3 |
-|---|---|---|---|---|---|
-| Real plan, pieces cut a day | 72,593 | **80,216** | 80,222 | 80,211 | 80,211 |
-| Real plan, pieces uncut at the end | 650,964 | **48,757** | 48,298 | 49,162 | 49,162 |
-| 100k plan, pieces cut a day | 71,279 | **96,700** | 96,576 | 97,119 | 97,119 |
-| 100k plan, days reaching 100k (of 63) | 0 | **22** | 20 | 18 | 18 |
-| Hours per 100k pieces, real / 100k plan | 30.8 / 32.9 | **31.9 / 27.3** | 31.9 / 27.3 | 31.9 / 27.3 | 31.9 / 27.3 |
-
-Cutter lost time, real plan, hours a day over the 5 cutters (setup / moving / waiting for a table): S0
-4.7 / 1.4 / 20.0; S1 4.6 / 1.3 / 20.2; S3 4.6 / 1.3 / 20.3 (stage (iv) S0 was 5.3 / 1.1 / 18.4).
-
-What this shows, and what it does not:
-- **Cutter output no longer depends on the rule**: S0, S1, S3 cut 80,211–80,222 a day on the real plan
-  (96,576–97,119 on the 100k plan). The pairing and the 2-batch rules are trolley rules (§7), and the
-  live floor cuts nearly all of what it is given (real plan: 48,757 of 6,385,842 pieces uncut).
-- **Waiting is readiness.** The cutters wait about 20 h a day for tables and the hours per 100k pieces are
-  identical in every column (31.9): the floor is limited by when tables become ready (marker, fabric,
-  Q26), not by the Job Sequence. Both inputs are ESTIMATES in how they are used.
-- **S1 and S3 lose a little trolley utilization** against stage (iv) (58.75 → 58.19, 68.77 → 67.45) and S2
-  more (64.67 → 61.17); the script does not isolate why. S0 → S1 still changes the dispatcher and adds
-  pairing (two changes).
-- Case 1 (pairs over the floor) against case 2 (keep an MO on one cut group) at stage (v): S3 67.45% /
-  151.7 / 1,062 against 66.85% / 153.1 / 1,072; cutter output 97,119 against 97,618 (100k plan).
-
-### Stage (vi): Q1 fixed, "1 batch per trolley" never mixes (2026-11-14; `npm run beforeafter`)
-
-User rule: the 2 and 3 batch options exist only under Cross-batch sequencing; with anything else, batches
-per trolley is 1 and must really mean 1. Before the fix, 1 batch plus a WIP hold still topped a parked
-trolley up with a second batch (global cap of 2). **S0–S3 and the five hold variants do not move by one bit**
-(asserted); only the 36 sweep keys with batches = 1 and a hold move, all downward. Trolley findings,
-April–June, 79 plan dates, live floor (cutter changeover 5 / moving 1.5 and the 7-day trip are ESTIMATES):
-
-| sweep key (mode \| batches \| hold min \| any workstation) | util % (v) → (vi) | trolleys / day (v) → (vi) |
-|---|---|---|
-| today \| 1 \| 60 \| any ws | 62.19 → 56.48 | 169.9 → 187.1 |
-| today \| 1 \| 240 \| any ws | 73.26 → 63.92 | 144.2 → 165.3 |
-| today \| 1 \| 240 \| same ws | 53.33 → 51.96 | 198.1 → 203.3 |
-| same_batch \| 1 \| 120 \| any ws | 70.43 → 63.10 | 145.3 → 162.1 |
-| cross_batch \| 1 \| 120 \| any ws | 70.46 → 63.16 | 145.2 → 162.0 |
-| cross_batch \| 1 \| 240 \| any ws | 74.18 → 65.11 | 137.9 → 157.1 |
-
-All 36 keys: `npm run beforeafter`. The old figures were mixing batches, so they overstated what a hold can do
-at 1 batch per trolley; a hold now helps only when the cap is 2 (S3). Idle time (cutter output) is a
-separate finding and did not move.
-
-### Validation against the real floor (`npm run carryprobe`, April–June)
-
-A **validation, not a calibration**: nothing in the model is tuned to it. Lateness = spreading
-finished after the plan date's midnight. Real side = tables with a Pull Date (6,501); simulated side =
-every table of the scope, S0, relaxing off, changeover 5 / moving 1.5 (ESTIMATES), G2 standard pace.
-
-| | Late (after the plan date) | More than a day late | Median finish | Mean slip of the late |
-|---|---|---|---|---|
-| Real (Pull Date) | 51.25% | 15.44% | 00:39 next day | 1.017 d |
-| Model (S0, real Job Sequence, **live floor**, published since 2026-11-10) | 25.98% | 6.85% | 16:46 | 0.871 d |
-| Model (S0, real Job Sequence, floor of 2026-11-09, HISTORICAL) | 52.02% | 44.36% | 08:35 next day | 4.512 d |
-| Model (S0 `today_grouped`, until 2026-11-09, HISTORICAL) | 17.78% | 1.42% | 15:38 | 0.412 d |
-
-On the live floor the model is **less late than the real floor** again, by 25.3 points (late) and 8.6
-points (more than a day late); its mean slip of the late tables (0.87 d) is close to the real one (1.02
-d), and its median table finishes the same day (16:46) where the real one finishes at 00:39 the next day.
-The live S0 no longer builds the backlog the floor of 2026-11-09 did (650,964 pieces uncut → 48,757).
-Nothing is tuned to this. The real floor is slower than the model by something the model does not have
-(the material, merge and lock rules, how the machines are really staffed, the real cutter picks,
-relaxing and marker timing as measured), so S0's absolute output and idle times are optimistic; the
-comparisons between S0 and S1–S3 on the same floor are the findings.
-
-### HISTORICAL (cold-start model, retired 2026-11-09; no longer reproducible): the cold start → carry-over table and the speed calibration
-
-Kept for the record; superseded by the staged table above. The two-stage step from the closed-day
-model to the carry-over floor at an ESTIMATED speed 0.80 (April–June):
-
-| | S0 before → after | S1 | S2 | S3 |
-|---|---|---|---|---|
-| Utilization % | 53.80 → 52.49 | 58.75 → 58.75 | 64.69 → 64.65 | 71.37 → 69.77 |
-| Trolleys / day | 194.4 → 201.1 | 173.6 → 173.6 | 157.8 → 157.8 | 143.0 → 146.2 |
-| Fleet @ 7-day trip (ESTIMATE) | 1,360 → 1,408 | 1,216 → 1,216 | 1,104 → 1,105 | 1,001 → 1,024 |
-
-The speed 0.80 had been picked from this calibration against Pull Date lateness (carry-over, no
-changeover, relaxing off):
-
-| Floor | Late | More than a day | Median finish | Mean slip of late |
-|---|---|---|---|---|
-| Real (Pull Date) | 51.3% | 15.4% | 00:39 next day | 1.02 d |
-| Cold start | 1.9% | 0% | 14:20 | 0.06 d |
-| Carry-over, speed 1.00 | 8.2% | 0.7% | 14:40 | 0.34 d |
-| Carry-over, speed 0.90 | 23.4% | 2.0% | 16:25 | 0.45 d |
-| Carry-over, speed 0.80 | 53.9% | 14.3% | 04:10 next day | 0.78 d |
-| Carry-over, speed 0.78 | 67.7% | 33.2% | 14:19 next day | 1.09 d |
-
-A recalibration against the same lateness with changeover on (a sweep of speed 0.60–1.00 in steps of
-0.01, run once on 2026-11-09 by an earlier version of `tools/carryover_probe.js`) picked 0.89, which
-gives 44.70% late against 51.25% real (a 6.55-point gap; the late share falls from 62.31% at 0.87 and
-63.97% at 0.88 to 44.70% at 0.89, so no speed hits the real value). The user then decided to remove the
-factor ("If it doesn't related to anything, then remove it"). **No repo script reproduces this table or
-that sweep any more** (the probe was rewritten as the validation above; the cold-start model and the
-speed factor are gone); the figures are copied from the output printed at the time.
-
-**Validation targets for the published model (April–June).** `npm run lab` proves Lab = model exactly;
-the full-precision headline is in §14 and `out/results.json`.
-
-**Mirror (retired 2026-11-13: the Python copy was removed, the project is Node-only):** `model.py` had `_staffed_between`, `carry_timeline` (with `mo_one_group`, the cutter
-changeover and the real cutter backlog `init_cut`), `run_carry`, `_pool`, `_sequence_pairs`, and
-`sequence(..., init_load, init_cut, mo_one_group)`; `daytrace.py build_trace(days, skipped, all_days)`
-and `run.py` use them. **They have never executed** (no Python on this machine) and are written to mirror
-`tools/model.js` line for line; first thing after Python works: run `run.py` and diff its
-`out/results.json` against the Node build's.
-
-## 17. Rules Lab (added 2026-11-05, rebuilt 2026-11-06 around the carry-over floor, floors and defaults updated 2026-11-09)
-
-> **2026-11-10: S0 figures in this section are from the grouped S0 and are superseded.** Everywhere
-> below that a number is quoted for S0 (cutter output, setup / moving / waiting hours, the "vs S0"
-> deltas, the lost-time columns, the 99,832 "below the published floor" figure), it was measured on
-> the model's S0 until 2026-11-09 (`today_grouped`). The Lab's S0 is now the real Job Sequence (§5).
-> Current figures: §18 stage (iv) and `npm run lab`. S1–S3 figures in this section did not move.
-
-A third tab on every month page, driven by **`tools/lab.js`**: one dependency-free file
-that Node runs and that `build.js` inlines into the page, so there is **no second port**.
-It is a deliberate exception to "mirror the Python": there is no `lab.py`. `tools/model.js` is the
-independent reference the Lab is checked against.
-
-**On its defaults the Lab IS the published model** (§18): carry-over floor, backlog-aware planner,
-fixed queue, the G2 standard pace (**the Lab has no speed option**), the pairs rule ("Where the pairs
-go: Pairs over the floor"), **cutter changeover 5 min and moving 1.5 min (ESTIMATES) as part of the
-floor, not add-ons**, no fabric relaxing, published recall order. It runs all 79 plan dates on
-unrounded inputs, so its tiles equal the published sweep (S0–S3 and the whole 117-row sweep; the Utilization
-tab that showed it was removed 2026-11-14) and its Job Sequence equals the model's trace. A green badge says so for the current selection.
-**Floor what-ifs (2026-11-14, moved from the Simulation tab):** option `cutters` (5/6/7/8, the layouts of
-`CUT_GROUPS_BY_CUTTER_COUNT`) and `tableM` (21.2/24/27 m, `LAB_TABLE_LENGTHS_M`). Defaults are today's floor and
-are bit-identical to it (`tableM × YARDS_PER_METRE` is the same expression as `SPREADING_TABLE_LENGTH`). They apply to the
-selection only: `ladder()` never sets them, so S0 stays at 5 cutters and 21.2 m. `npm run lab` proves every other floor
-against `model.runCarry({layout, tableLength})` exactly (11 floors × S0–S3 × 15 fields). Everything
-else is an add-on, off until switched on; changing the setup or travel minutes, or choosing "Keep an
-MO on one cut group", turns the badge to "Not the published model". **There is no floor selector:
-the Lab is carry-over only** (user, 2026-11-06); its closed (cold-start) floor was removed on
-2026-11-09.
-
-**Where the pairs go** (a control, 2026-11-09): "Pairs over the floor" (default, the published rule,
-`sequencePairs`, §5) or "Keep an MO on one cut group" (`sequenceMoAware`, the 2026-11-06 rule).
-Option `moOneGroup`; it applies only when same-MO sequencing is on and the dispatch is a fixed
-queue (S0 ignores it).
-
-**Data:** `daytrace.js labData()` ships the tasks as gzipped columnar JSON (base64, ~129 KB per
-file); the page unzips with the browser's `DecompressionStream`. `lab.js decode()` rebuilds
-`labInput()`'s tasks bit for bit (spread/cut recomputed in model.js's exact operation order).
-
-**Add-ons and floor settings** (setup, travel and relaxing are ESTIMATES in `assumptions.py`; setup and travel are **on** by default, the rest off)
-
-| Add-on | Rule |
-|---|---|
-| Fabric relaxing | `ready = firstPlanOffset − (12..48 h, FNV-1a("relax\|"+batch)) + 24 h`; a table starts only when its batch is ready (and its plan date's shift has begun) |
-| Dispatch `dynamic` | a free spreader takes the released table with the lowest key (plan date, same MO+batch as its last, same MO+colour, colour group, longer first); no home cut group |
-| Rule (a), dynamic | the partner (same MO+batch, then same MO+colour if mixing) is spread right after, on the same spreader, if already released |
-| Pull-ahead | carry-over only: a table is released when the shift of plan date `D − pullAhead` has begun |
-| Colour grouping | dynamic only: prefer the MO+colour the cutter just cut or neighbours are spreading |
-| Cutter setup (default 5 min, the published floor) | `setupMin` when the next table's MO or colour differs from the cutter's last cut (Q19) |
-| Cutter travel (default 1.5 min, the published floor) | `travelMin` when the next table is on a different spreader than the cutter's last (Q19) |
-| Recall `sameFirst` / `sameOnly` | a parked trolley already holding one of the cut batches is recalled first; other-batch trolleys only for `sameFirst`; never a third batch. `model` = the published order (quirk Q1) |
-| Shift | `both` (floor today), `day`, `night` (24-01/02/03 + 24MC1) |
-
-**The arrangement view** (Job Sequence + Panel Loading) reads the engine's `detail`: per-task
-machine, cutter, times, setup, travel, G6 wait start and fabric ready time; starved intervals;
-combined pairs; and every trolley with its compartments (batch, tables, recalled same/other).
-It is drawn in the Simulation tab's visual language, with a plan-date calendar, a time cursor,
-pair brackets, blocked and starved hatches, setup and travel slices and hover details. On the
-carry-over floor, tables of earlier plan dates still on the machines at 07:15 are drawn with a
-dashed outline.
-
-**Output panel (added 2026-11-06).** The requirement is `REQUIRED_PIECES_PER_DAY = 100000` (user
-requirement, not an estimate). Pieces are every piece a table cuts (`pieces_total` = Σ ratio × layers,
-equal to `Cut Qty`, all sizes; the trolley accounting still sees only universal sizes, 60,223 a day).
-Over April–June that is 6,385,842 pieces, 80,833 a day; only 13 of 79 plan dates reach 100k.
-`finish()` reports `output`: `plannedPerDay`, `cutPerDay` (pieces finished by the last plan date's
-window end ÷ plan dates), `backlogPieces` (the rest), `daysMeeting` (plan days whose calendar day cut
-≥ requirement), `piecesPerShiftHour` and `hoursPer100k` (staffed shift-window hours to the last cut
-per 100k pieces). Two plans are shown, S0 against the selection:
-
-- **real plan**: the data as it is;
-- **100k plan** (`rebucket()` in `lab.js`): the real tables in plan order dealt into plan dates that
-  each close once they hold ≥ 100,000 pieces, on the real calendar in order (63 dates; 34 tail tables
-  that cannot fill a last date are left out). Batch first dates are recomputed for fabric relaxing.
-  It is a test of the floor's capacity, not a forecast: pairing sees larger days than the real ones.
-
-Result (April–June, carry-over, G2 standard pace, cutter setup 5 min and travel 1.5 min (ESTIMATES),
-no fabric relaxing; `npm run lab` block "SAME FLOOR IN EVERY ROW: the PUBLISHED floor", columns
-"cut/day", "backlog", "days>=req", "h/100k"): pieces cut a day, S0 → S3. Real plan (80,833 planned a
-day) 80,649 → 80,711 (+0.08%). 100k plan 94,961 → 95,195 (+0.25%): the floor does not cover 100k
-(4,805 to 5,133 a day short for the three rules; 360,412 to 381,079 pieces uncut at the end; 12 of 63
-days reach 100k for S0 and S1, 14 of 63 for S2 and S3); cutting 100k pieces takes 23.0 h of shift time
-against a 21.8 h working day (S0 and S3 alike, column "h/100k"; 27.0 h and 26.9 h on the real plan).
-Take the setup and travel away (block "BELOW the published floor: no cutter setup, no travel, no
-fabric relaxing", same pace) and the 100k plan S0 cuts 99,832 a day (34 of 63 days reach 100k; S3
-99,810, 33 of 63). The rules raise trolley utilization (§18), not cutting output: the three rules
-move cutter output by under 0.3% of S0 in either direction.
-
-**Like for like (2026-11-06, re-based 2026-11-09).** Every ladder row runs on the same floor: shift,
-pace, fabric relaxing, cutter setup and travel come from the selection, so S0 carries them too; only
-the rules differ. Setup and travel (5 min, 1.5 min, ESTIMATES) are part of the published floor and
-sit in every row; pull-ahead, dynamic dispatch, same-batch recall and colour grouping are new rules,
-steps after S3, never in S0. Every number below is from `npm run lab`, April–June, G2 standard pace,
-fabric relaxing off, unless it says otherwise. The earlier narrative (rule (a) cuts cutter setup but
-output does not rise; setup 5 against 10 at speed 0.80) belonged to the superseded build and is
-withdrawn: at the standard pace the three rules move cutter output by under 0.3% (§18).
-
-*Cutter lost time, same runs* (carry-over, scenario S0 / S3; hours a day = run hours ÷
-`finishHours / dayWindowHours`, all 5 cutters summed, so about 64 staffed hours a day; lost = setup +
-travel + waiting for a table):
-
-| Setup / travel (ESTIMATES) | Plan | S0 pieces a day | S3 pieces a day | S0 lost h a day | S3 lost h a day |
-|---|---|---|---|---|---|
-| 0 / 0 min (below the published floor) | real | 80,718 | 80,778 | 19.07 | 18.98 |
-| 0 / 0 min | 100k | 99,832 | 99,810 | 8.48 | 8.39 |
-| **5 / 1.5 min (published)** | real | 80,649 | 80,711 | 19.20 | 19.03 |
-| **5 / 1.5 min (published)** | 100k | 94,961 | 95,195 | 11.49 | 11.35 |
-| 10 / 2 min (sensitivity) | real | 80,309 | 80,265 | 19.37 | 19.46 |
-| 10 / 2 min (sensitivity) | 100k | 84,624 | 86,577 | 17.32 | 16.54 |
-
-What this shows, and no more:
-- Raising setup and travel from 5 / 1.5 to 10 / 2 min lowers S0 output (real plan 80,649 → 80,309 a
-  day; 100k plan 94,961 → 84,624) and raises cutter lost time (real 19.20 → 19.37 h a day; 100k 11.49
-  → 17.32 h). On the real plan lost time barely moves because waiting turns into setup (S0 waiting
-  12.99 → 7.16 h, setup 4.69 → 10.25 h, travel 1.52 → 1.96 h); more setup never shows more output.
-- At 5 / 1.5, S0 → S3 on the real plan changes setup 4.69 → 5.94 h a day, waiting 12.99 → 11.50 h and
-  travel 1.52 → 1.59 h (they sum to 19.20 and 19.03). The pairs rule does **not** reduce cutter setup
-  here; no sentence in this file says the rules save lost time.
-- Lost time is not monotone across the rules (10 / 2, real plan: S0 → S3 output falls 80,309 → 80,265
-  while lost time rises 19.37 → 19.46 h; 100k plan: output rises 84,624 → 86,577 and lost time falls
-  17.32 → 16.54 h).
-- At the standard pace the cutters cut about 70% of their staffed time on the real plan (cutter cut%
-  in `npm run lab`'s "RULE (a) TWO WAYS" block) and wait 11–13 h a day, while the spreaders wait for
-  table space (spreader waiting-for-table about 36–38 h a day, all 13 summed): the spreaders limit
-  output more than the cutters on the real plan.
-- These are idle-time findings only; they say nothing about the trolley shortage (§18). `npm run lab`
-  prints the columns "cutter lost h/day", "cutter waiting h/day", "cutter travel h/day" and "spreader
-  waiting-for-table h/day" for every block, including the 10 / 2 block (`SENS_SETUP`, `SENS_TRAVEL` in
-  `tools/lab_table.js`, ESTIMATE sensitivity, not in `assumptions`).
-
-**Machine time is shown in hours per working day** (period hours ÷ `finishHours / dayWindowHours`),
-by machine: spreading, then lost time = staffed − spreading = waiting for table space + nothing
-released + idle (the spreader's own colour-change setup counts as spreading, not as lost); cutters:
-cutting, then lost = setup + travel + waiting for a table. Cutter waiting is a residual (staffed −
-cutting − setup − travel), not a separately timed wait: it includes the wait at the end when a cutter
-has no more tables, idle at the run's start, and time when spreaders hold the tables back. The old
-percentage bars are gone. Since 2026-11-14 the Lab's "Where the machine time goes" is four tables, S0
-against the selection, all in hours per working day: the spreaders and the cutters, each per machine and
-for all machines summed (rows: staffed, working, each lost part, lost total, with a Change column),
-and each machine (13 spreaders, 5 cutters: working, lost, change in lost). The total-over-the-run view,
-the Check column and the unit switch were removed; the accounting is still checked by `npm run lab`.
-The Lab's selection panel is the Utilization tab's fleet card and six tiles ("vs today" = S0 on the same
-floor; round trip and fleet follow the Utilization sliders); the Output panel is one table, pieces cut a
-day for the real plan and the 100k plan, S0 against the selection, with the change in pieces and %.
-"What each step adds" was removed from the Lab (the ladder still runs in `lab.js` for the gates).
-
-**Gates:** `npm run lab` (`tools/lab_table.js`) proves, exactly, (1) the compact data decodes to
-model.js's tasks, (2) every scenario × 15 fields equals `model.runCarry()`, with the pairs rule
-(126 scenarios) and with the option "Keep an MO on one cut group" (86 more), and the 39 `today` sweep
-keys do not move with the option, (3) every task's machine, cutter, times, setup and travel equal
-`carryTimeline()` for 3 modes plus 2 with the option × 79 dates, (4) the detail adds up (tasks once,
-trolleys, compartments, pairs adjacent, setup and travel sums, cut minutes conserved, deterministic),
-(5) pieces: Σ equals `Cut Qty`, the re-bucket keeps every table once, every re-bucketed date holds
-≥ 100k, and `cutPerDay × dates + backlog = Σ pieces`. It also prints the output tables. The parity gate adds,
-per month file, the Lab's option sets (re-run from Node), all 117 sweep keys against `DATA.sweep`,
-and this month's tasks against the trace (`__LAB.__labCheck`).
-
-**Known limits:** the Lab fixes 5 cutters and the 21.2 m table; Python builds carry no `lab` and the
-tab stays hidden; any change recomputes four runs (real and 100k plan, S0 and selection), a few seconds.
+  of the 20-date export against the 199-date workbook.
+- `npm run parity`: the page, in Edge, re-runs what Node computed (option sets, all 117 sweep keys,
+  each month's trace).
+- The Edge check: open the page; no console errors, the badge green on the defaults, the controls work.
+- `npm run beforeafter`: every stage reproduces its frozen headline and the last stage equals
+  `out/results.json` (asserts listed in [docs/HISTORY.md](docs/HISTORY.md)).
+
+`out/*.bak` are the last output of the retired Python build. Never edit them; no gate reads them.
+
+## 15. Open decisions
+
+Decided items are in [docs/HISTORY.md](docs/HISTORY.md).
+
+1. **Trolley pool.** Limit it to 1,200, with a return delay = cycle time, so a shortage can stop cutting?
+2. **Data upgrades.** Read component from `Spd_Remark`, stretch from `Spd_Remark5`, and setup from C1/C2. Decide whether to admit T1/P/T/R/L/W rows.
+3. **Validation.** `npm run carryprobe` compares the model's lateness with `Pull Date` (nothing is tuned to it); the 378 `Cut Date` rows give the Pull → Cut gap (median 82 min), not yet used. Open: what slows the real floor.
+4. **Quirks.** Decide which of Q2–Q4, Q8–Q15, Q17–Q28 to keep for continuity and which to fix, each with a before/after table (Q1 is fixed; Q5–Q7 and Q16 are retired).
+5. **S0 → S1 is two changes** (a different dispatcher and pairing). A one-rule S1 (S0 with the SQL's own `SameBatchMoTogether` switch on) would separate them.
+6. **Floor measurements still needed:** trolley round trip, how a trolley moves between workstations, changeover and moving minutes, fabric arrival times, whether breaks stop machines, per-table lengths.
 
 ## 16. Codebase map
 
@@ -1125,24 +598,22 @@ flowchart LR
   D --> H[out/sim-YYYY-MM.html<br/>out/index.html]
 ```
 
-**Node-only since 2026-11-13.** The Python copy never ran on this machine and had fallen
-behind; it was removed. **The Node code in `tools/` is the model and produced everything in
-`out/`.** The left column below is kept as history (Python-style function names are used
-throughout this spec; `model.js` uses the camelCase forms).
+**The code is Node only.** `tools/` is the model and produced everything in `out/`. This spec uses
+snake_case function names in places (from the retired Python copy); `model.js` uses the camelCase forms.
 
 ### Model files
 
-| Python (removed 2026-11-13) | Node | Role | Key functions |
-|---|---|---|---|
-| `assumptions.py` | `tools/assumptions.js` | every constant (section 3) | — |
-| `model.py` | `tools/model.js` | the 4 stages + metrics | `working_intervals`, `machine_layout`, `occupy`, `Scenario`/`makeScenario`, `parse_marker_ratio`, `_fnv1a32`, `_c_setup_minutes`, `load_days`, `_stamp_batch_readiness`, `compartments_for`, `trolleys_for`, `combined_compartments`, `can_combine`, `_pick_machine`, `sequence(tasks, mode, layout, init_load, init_cut, mo_one_group)`, `_sequence_today`, `_sequence_mo_aware` (the option "keep an MO on one cut group"), `_sequence_pairs` (S1–S3), `_free_length`, `_room_at`, `_loading_events`, `load_trolleys`, `_pool`, `_staffed_between`, `carry_timeline(days, mode, layout, table_length, mo_one_group)`, `run_carry`, `fleet_required`, `longest_sustainable_cycle`. (`run_timeline`, `run_day` and `run` were removed with the cold start; `sequenceToday` etc. are camelCase in `model.js`.) |
-| — (**no Python port yet**) | `tools/floor.js` | the live floor's event-driven timeline (§6b), shared by `model.js` `carryTimeline` (live branch, `A.LIVE_FLOOR`) and the Lab engine, and inlined into the page by `build.js` before `lab.js` | `run`, `roomAt`, `freeLength`, `advance`, `occupy`, `staffedBetween` |
-| `scenarios.py` | `tools/scenarios.js` | S0–S3, hold variants, 117-row sweep | `HEADLINE`, `HOLD_VARIANTS`, `sweep_key`, `sweep_scenarios` |
-| `daytrace.py` | `tools/daytrace.js` | per-day trace for the Simulation tab | `SIM_VARIANTS`, `build_trace`, `_record`, `_expected`, `_groups_block` |
-| `run.py` | `tools/build.js` | orchestrates the build, writes `out/` | `compute_slip`, `summarise`, `main`, `write_excel` (Python only) / `buildPayload`, `extractTemplate`, `buildDashboardHtml` |
-| `dashboard.py` | — (`build.js` slices `TEMPLATE` out of it) | the page: HTML + CSS + browser JS | see below |
-| `idle_variants.py` | `tools/idle_variants.js` | README Part 7 idle-time tables (ported to carry-over 2026-11-09; the cold-start figures are printed beside, HISTORICAL) | `routing`, `measure`, `measure_cutters`, `section_2/3/4/4b` |
-| — | `tools/round.js` | Python-style banker's rounding | `bankersRound` |
+| File | Role | Key functions |
+|---|---|---|
+| `tools/assumptions.js` | every constant (§3) | — |
+| `tools/model.js` | the 4 stages + metrics | `workingIntervals`, `machineLayout`, `occupy`, `makeScenario`, `parseMarkerRatio`, `fnv1a32`, `cSetupMinutes`, `loadDays`, `compartmentsFor`, `trolleysFor`, `combinedCompartments`, `canCombine`, `pickMachine`, `sequence(tasks, mode, layout, initLoad, initCut, moOneGroup)`, `sequenceJobSeq` (S0), `sequenceToday` (`today_grouped`), `sequenceMoAware` (the option "keep an MO on one cut group"), `sequencePairs` (S1–S3), `freeLength`, `roomAt`, `loadingEvents`, `loadTrolleys`, `pool`, `staffedBetween`, `carryTimeline(days, mode, layout, tableLength, moOneGroup)`, `runCarry`, `fleetRequired`, `longestSustainableCycle` |
+| `tools/floor.js` | the live floor's event-driven timeline (§6b), shared by `model.js` `carryTimeline` (live branch) and the Lab engine, inlined into the page before `lab.js` | `run`, `roomAt`, `freeLength`, `advance`, `occupy`, `staffedBetween` |
+| `tools/lab.js` | the Rules Lab engine (§17), run by Node and inlined into the page | `makeConfig`, `createEngine` (`run`, `run100k`, `rebucket`), `ladder`, `summary`, `optFromSweepKey`, `decode` |
+| `tools/scenarios.js` | S0–S3, hold variants, 117-row sweep | `HEADLINE`, `HOLD_VARIANTS`, `sweepKey`, `sweepScenarios` |
+| `tools/daytrace.js` | per-day trace and the Lab's compact data | `SIM_VARIANTS`, `buildTrace`, `labInput`, `labData` |
+| `tools/build.js` | orchestrates the build, writes `out/` and the root `index.html` | `buildPayload`, `extractTemplate`, `buildDashboardHtml`, `labBlock` |
+| `dashboard.py` | the page: HTML + CSS + browser JS. Python is not needed: `build.js` reads `TEMPLATE` out of it as text | see below |
+| `tools/round.js` | Python-style banker's rounding for printed values (Q14) | `bankersRound` |
 
 **Dependency order inside `tools/model.js`:** `assumptions` → `working_intervals` → `machine_layout`
 → `LAYOUT` (the default 5-cutter layout). Every stage takes an optional `layout` and
@@ -1153,10 +624,10 @@ throughout this spec; `model.js` uses the camelCase forms).
 | File | Built by | Contents |
 |---|---|---|
 | `out/results.json` | `build.js` | keys: `plan_dates`, `tables`, `assumptions`, `cut_groups`, `night_shift_*`, `spreader_shift`, `cutter_shift`, `machine_minutes`, `shift_end`, `table_lengths_m`, `status_colors`, `headline` (S0–S3 summaries), `hold_variants`, `sweep`, `sweep_axes`, `per_day`, `sim_variants`, `cutter_counts`, `cut_groups_by_cutter_count`, `cutter_*_by_cutter_count`, `slip`, `baseline_variant` |
-| `out/sweep.json` | same | the 117 sweep rows the Utilization sliders read |
-| `out/sim-2026-0{4,5,6}.html` | same | one self-contained page per month: the same pooled Utilization data plus that month's trace |
-| `out/index.html` | same | a copy of the chronologically latest month. `build.js` also copies it to the repo root `index.html` (since 2026-11-14), because GitHub Pages serves the root; without it Pages shows the README |
-| `out/*.bak` | the last genuine Python run (cold-start era) | kept on disk, **never edit**; no gate has read them since 2026-11-09 (the pin was retired). The project has no independent check against Python any more |
+| `out/sweep.json` | same | the 117 sweep rows (the badge's published values) |
+| `out/sim-2026-0{4,5,6}.html` | same | one self-contained page per month: the same pooled Lab data plus that month's trace |
+| `out/index.html` | same | a copy of the chronologically latest month. `build.js` also copies it to the repo root `index.html`, because GitHub Pages serves the root |
+| `out/*.bak` | the last Python run (retired model) | kept on disk, **never edit**; no gate reads them |
 
 **Trace shape** (`build_trace`), per date × sequencing mode × variant:
 - `order[machine] = [task index…]`. This lives inside the variant, because the cutter count changes the sequence.
@@ -1168,20 +639,15 @@ Full variants are 21.2 m at 5 and 7 cutters. Aggregate-only variants are 6 and 8
 
 ### The page (`dashboard.py` `TEMPLATE`)
 
-**One page since 2026-11-14: the Rules Lab.** The Utilization and Simulation tabs (and the page's own
-port of the loading stage, `SIM`) were removed; what was useful moved into the Lab. The page runs
-`tools/lab.js` + `tools/floor.js` inlined by `build.js`, the very files Node runs, so there is one
-implementation of the loading stage in the project.
+**One page: the Rules Lab** (§17). The page runs `tools/lab.js` + `tools/floor.js` inlined by `build.js`,
+the very files Node runs, so there is one implementation of the loading stage in the project.
 
 - **Top level:** `DATA`, `state` (`cycle`, `fleet`: the Fleet sliders), `key`, `trolleySvg`, `fleetDial`, the theme button.
 - **Rules Lab (`LABUI`):** `syncControls`, `tiles` (fleet card + six tiles), `trolleyPanel` ("What one trolley looks like"),
-  `badge`, `machineTables` (`sumTable`, `eachTable`), `outputs`, `dayChart`, `ganttSvg` (rows from `rowsOf`/`groupsOf`: the option set's
-  cutter count), `idleTable`, `loadPanel`, `render`, `wire`, `show`, `__labCheck`.
-- **Moved from the Simulation tab:** cutter count 5/6/7/8 and table length 21.2/24/27 m (options `cutters`, `tableM` of `lab.js`;
-  selection only, S0 stays at 5 / 21.2 m, see CLAUDE.md) and the per-date idle-time table per cut group. Moved from the Utilization tab:
-  the fleet card, the six tiles, "What one trolley looks like", round trip and trolleys owned.
-- **Parity hook:** `window.__LAB.__labCheck()` re-runs the option sets Node precomputed (including a 7/8-cutter floor and a 24 m table),
-  all 117 sweep keys, and this month's trace.
+  `badge`, `machineTables` (`sumTable`, `eachTable`), `outputs`, `dayChart`, `ganttSvg` (rows from `rowsOf`/`groupsOf`),
+  `idleTable`, `loadPanel`, `render`, `wire`, `show`, `__labCheck`.
+- **Parity hook:** `window.__LAB.__labCheck()` re-runs the option sets Node precomputed, all 117 sweep keys,
+  and this month's trace.
 
 ### Gates and measurement scripts
 
@@ -1191,23 +657,23 @@ implementation of the loading stage in the project.
 | `npm run lab` | `tools/lab_table.js` | **gate** | Rules Lab = model, exact (§17); also prints the comparison tables; `-- --checks` for the checks only |
 | `npm run regress` | `tools/regress.js` | **gate** | R0–R3: 18 shared dates × 117 scenarios = 33,696 checks on `runCarry()`, old file against new (a reader check, not a check against Python) |
 | `npm run parity` | `tools/parity_check.js` | **gate** | opens each month file in Edge (`playwright-core`) and runs `__LAB.__labCheck()` |
-| `npm run idle` | `tools/idle_variants.js` | measurement | README Part 7 §2–§4b, carry-over, 199 dates |
-| `npm run tc` | `tools/tc_table.js` | measurement | T-C, the cutter count against trolley numbers, carry-over |
-| `npm run beforeafter` | `tools/before_after.js` | measurement + asserts | the staged before/after (§18); exits non-zero if stage (0) does not reproduce the 2026-11-06 headline or stage (iii) differs from `out/results.json` |
+| `npm run idle` | `tools/idle_variants.js` | measurement | idle-time tables ([docs/IDLE_TIME.md](docs/IDLE_TIME.md)), 199 dates |
+| `npm run tc` | `tools/tc_table.js` | measurement | T-C, the cutter count against trolley numbers (§12) |
+| `npm run beforeafter` | `tools/before_after.js` | measurement + asserts | the staged before/after ([docs/HISTORY.md](docs/HISTORY.md)); exits non-zero if a stage misses its frozen headline or the last stage differs from `out/results.json` |
 | `npm run carryprobe` | `tools/carryover_probe.js` | measurement | the model's lateness against the real Pull Date: a validation, not a calibration (§18) |
-| `npm run ceiling` | `tools/util_ceiling.js` | measurement | trolley-utilization ceilings with perfect packing and unlimited waiting (A–E); why more batches per trolley stops near 67% |
-
-Retired on 2026-11-09 with the cold start: `npm run pin` (`tools/pin.js`), `npm run warmstart`
-(`warmstart_table.js`), `npm run pullahead` (`pullahead_table.js`).
+| `npm run ceiling` | `tools/util_ceiling.js` | measurement | trolley-utilization ceilings with perfect packing and unlimited waiting (A–E, §12) |
+| `npm run datamodel` | `tools/data_model.js` | generated doc + check | [docs/DATA_MODEL.md](docs/DATA_MODEL.md) and its CSVs; asserts every constant is documented; `-- --check` exits 1 if out of date |
 
 **Dependencies:** Node with `xlsx` 0.18.5 (SheetJS) and `jsdom` (both dev-only), plus
 `playwright-core` with the installed Edge for parity. No Python.
 
-**Agents:** `.claude/agents/` defines planner → coder → tester, plus a compacter that keeps README Part 8.
+**Agents:** `.claude/agents/` defines planner → coder → tester, plus a compacter that records decisions in
+[docs/HISTORY.md](docs/HISTORY.md).
 
 ### Known code debts
 
-- Two rows of the Part 5 sensitivity table need a `max_chain` field on `Scenario` to regenerate.
+- Two rows of the old sensitivity table (chaining more than two tables per trolley set) need a
+  `max_chain` field on `Scenario` to regenerate ([RULES.md](RULES.md) F).
 
 ### Suggested rebuild order
 
@@ -1217,3 +683,145 @@ Retired on 2026-11-09 with the cold start: `npm run pin` (`tools/pin.js`), `npm 
 4. Port LOAD. Check all four headline columns to full precision.
 5. Port the sweep. Run regress-style checks on the 18 shared dates.
 6. Only then add any of the decisions in section 15, each with a before/after table.
+
+
+## 17. Rules Lab (the website's engine)
+
+The website is one page, the Rules Lab (`dashboard.py` `TEMPLATE`). Its engine is **`tools/lab.js`**: one
+dependency-free file that Node runs and that `build.js` inlines into the page together with
+`tools/floor.js`, so the page and Node run the same code. `tools/model.js` is the independent reference
+the Lab is checked against.
+
+**On its defaults the Lab is the published model:** live carry-over floor, G2 standard pace, the pairs
+rule, cutter changeover 5 min and moving 1.5 min (ESTIMATES, part of the floor), fabric relaxing on,
+the published recall order. It runs all 79 plan dates on unrounded inputs, so its numbers equal the
+published sweep (S0–S3 and all 117 sweep keys) and its Job Sequence equals the model's trace. The badge
+is green when the current selection is a published sweep key and matches it; any other setting turns it
+to "Not the published model" and lists what differs.
+
+**S0 against the selection (SIM5).** Every comparison row runs on the same floor. Shift, fabric
+relaxing, cutter setup and travel come from the selection, so S0 carries them too; only the rules differ.
+
+**Page controls → engine options**
+
+| Page control | Option | Values | RULES.md |
+|---|---|---|---|
+| Shift | `shift` | `both` (default), `day`, `night` | C4.2 |
+| Round trip, Trolleys owned | page state `cycle`, `fleet` | 3–10 days (7), 600–2,200 (1,200); arithmetic only, no re-run | M4, M5 |
+| Same-MO sequencing | `seqMode` | `today` (Off), `same_batch`, `cross_batch` | C1.1 |
+| Where the pairs go | `moOneGroup` | pairs over the floor (default) / keep an MO on one cut group; only with same-MO sequencing on | C1.5 |
+| Batches per trolley | `batches` (`mix = batches ≥ 2`) | 1, 2, 3; 2 and 3 are enabled only with `cross_batch`, and leaving `cross_batch` resets to 1 | C2.1–C2.3 |
+| WIP hold | `holdMin` | 0–240 min, step 30 | C3.2 |
+| It comes back to | `anyWs` | Same only / Any (default) | C3.4 |
+| Which parked trolley is recalled | `recall` | `model` (Published), `sameFirst`, `sameOnly` | C3.5 |
+| Pull-ahead | `pullAhead` | 0 (default), 1, 2, 3, 99 (All) | C4.1 |
+| Cutter setup | `setupMin` | 0–15 min, step 0.5 (5) | T3 |
+| Cutter travel | `travelMin` | 0–5 min, step 0.5 (1.5) | T4 |
+| Wait for fabric relaxing | `relax` | On (default) / Off | R3 |
+| Earliest / latest arrival | `relaxMaxH` / `relaxMinH` | 0–96 h, step 6 (48 / 12) | R4 |
+
+Engine-only options (no page control; checked by `npm run lab`): `cutters` (5/6/7/8) and `tableM`
+(21.2/24/27 m), selection only, kept for simulations of other factories; `live: false` (the floor of
+2026-11-09); `dispatch: 'dynamic'` (dormant, reachable only by passing it directly).
+
+**Add-on mechanics**
+
+| Add-on | Rule |
+|---|---|
+| Fabric relaxing | `ready = firstPlanOffset − (relaxMinH..relaxMaxH, FNV-1a("relax\|"+batch)) + 24 h`; a table starts only when its batch is ready (§6b) |
+| Pull-ahead | a table is released when the shift of plan date `D − pullAhead` has begun |
+| Cutter setup | `setupMin` when the next table's MO or colour differs from the cutter's last cut (Q19) |
+| Cutter travel | `travelMin` when the next table is on a different spreader than the cutter's last (Q19) |
+| Recall `sameFirst` / `sameOnly` | a parked trolley already holding one of the cut batches is recalled first; other-batch trolleys only for `sameFirst`; never past the batch limit. `model` = the published order |
+| Shift | `day`: day shift only; `night`: 24-01/02/03 and 24MC1 only |
+
+**Data:** `daytrace.js labData()` ships the tasks as gzipped columnar JSON (base64, about 129 KB per
+file); the page unzips it with the browser's `DecompressionStream`. `lab.js decode()` rebuilds
+`labInput()`'s tasks bit for bit (spread and cut recomputed in model.js's exact operation order).
+
+**The arrangement view** (Job Sequence, Idle time, Panel Loading) reads the engine's `detail`: per task the
+machine, cutter, times, setup, travel, G6 wait start and fabric ready time; starved intervals; combined
+pairs; every trolley with its compartments (batch, tables, recalled same/other). Tables of earlier plan
+dates still on the machines at 07:15 are drawn with a dashed outline.
+
+**Output panel.** The requirement is `REQUIRED_PIECES_PER_DAY = 100000` (B7). Pieces are every piece a
+table cuts (`pieces_total` = Σ ratio × layers, equal to `Cut Qty`, all sizes; the trolley accounting sees
+only universal sizes). `finish()` reports `output`: `plannedPerDay`, `cutPerDay` (pieces finished by the
+last plan date's window end ÷ plan dates), `backlogPieces` (the rest), `daysMeeting`,
+`piecesPerShiftHour` and `hoursPer100k`. Two plans, S0 against the selection:
+
+- **real plan**: the data as it is (April–June: 6,385,842 pieces, 80,833 a day);
+- **100k plan** (`rebucket()`): the real tables in plan order dealt into plan dates that each close once
+  they hold ≥ 100,000 pieces, on the real calendar in order (63 dates; 34 tail tables left out). Batch
+  first dates are recomputed for fabric relaxing. A test of the floor's capacity, not a forecast.
+
+Current values are in §14.
+
+**Machine time** ("Where the machine time goes") is in hours per working day (period hours ÷
+`finishHours / dayWindowHours`), S0 against the selection: spreaders and cutters, summed and per machine.
+Spreader lost time = staffed − spreading = waiting for table space + nothing released + idle (the
+spreader's own colour-change setup counts as spreading). Cutter lost time = setup + travel + waiting for a
+table. Cutter waiting is a residual (staffed − cutting − setup − travel), not a separately timed wait.
+
+**Gates:** `npm run lab` (`tools/lab_table.js`) proves, exactly:
+1. the compact data decodes to model.js's tasks;
+2. every scenario × 15 fields equals `model.runCarry()`, with the pairs rule (126 scenarios) and with the
+   option "Keep an MO on one cut group" (86 more), and the 39 `today` sweep keys do not move with the
+   option; the 11 other floors (cutters × table lengths) equal `runCarry({layout, tableLength})`;
+3. every task's machine, cutter, times, setup and travel equal `carryTimeline()`;
+4. the detail adds up (tasks once, trolleys, compartments, pairs adjacent, setup and travel sums, cut
+   minutes conserved, deterministic);
+5. pieces: Σ equals `Cut Qty`, the re-bucket keeps every table once, every re-bucketed date holds ≥ 100k,
+   and `cutPerDay × dates + backlog = Σ pieces`.
+
+The parity gate adds, per month file, the Lab's option sets re-run in the page, all 117 sweep keys against
+`DATA.sweep`, and the month's tasks against the trace (`__LAB.__labCheck`).
+
+**Known limits:** any change recomputes four runs (real and 100k plan, S0 and selection), a few seconds.
+
+## 18. The carry-over floor
+
+R5: there is no cold start; there is always work left from the day before at the spreading and cutting
+machines. The published model is `runCarry()` (`tools/model.js`), one timeline over all in-scope plan
+dates, cached per days object, mode, `moOneGroup`, layout, table length, the two cutter constants and the
+live-floor constants.
+
+1. `off[d]` = calendar minutes from the first date's 07:15 to date d's 07:15 (so weekends are skipped by
+   calendar, not by shift).
+2. Every task's minutes are the G2 rates times marker length and layers (the C setup is inside spread).
+3. Staffed spans repeat on every plan date, plus synthetic consecutive days after the last,
+   `min(3000, ceil(2 × max(Σspread / Σspreader staffed per day, Σcut / Σcutter staffed per day)) + 14)`,
+   so the last tables finish on staffed hours. There is no overtime on the raw clock: work that does not
+   fit waits for the next shift.
+4. **Dispatch.** On the live floor (published) this is §6b: re-plans every 30 minutes, readiness, the
+   cutter's longest-wait pick. On the floor of 2026-11-09 (`A.LIVE_FLOOR = false`, `npm run beforeafter`
+   only) each plan date is sequenced once on its morning with `machineLoad[m] = staffedBetween(spans[m],
+   off[d], free[m])` and `initCut[c] = staffedBetween(cutter spans, off[d], cutFree[c])`, then its queues
+   are dispatched until empty by the spreader with the earliest next staffed instant.
+5. The per-table steps are §6.
+6. Lays older than the effective start are dropped from the G6 list (identical results, faster).
+7. **Loading stays per plan date**: a date's tables are loaded in the order they finish cutting, and
+   parked trolleys do not carry into the next date's loading (§7).
+
+**Per-plan-date idle-time figures** (means of daily values): spreading blocked % = Σ staffed G6 wait ÷
+Σ(spread + wait) over that date's tables; cutting blocked % = Σ cutter wait ÷ Σ(cut + wait); makespan = the
+date's last spreading end minus its 07:15; blocked minutes = Σ staffed G6 wait; **overrun minutes** =
+staffed spreading minutes of that date's tables after their machine's own window closed; **machines past
+their window** = spreaders still spreading that date's tables after their window.
+
+### Validation against the real floor (`npm run carryprobe`, April–June)
+
+A **validation, not a calibration**: nothing in the model is tuned to it. Lateness = spreading finished
+after the plan date's midnight. Real side = tables with a Pull Date (6,501); simulated side = every table
+of the scope, S0, changeover 5 / moving 1.5 (ESTIMATES), G2 standard pace.
+
+| | Late (after the plan date) | More than a day late | Median finish | Mean slip of the late |
+|---|---|---|---|---|
+| Real (Pull Date) | 51.25% | 15.44% | 00:39 next day | 1.017 d |
+| Model (S0, live floor) | 25.98% | 6.85% | 16:46 | 0.871 d |
+
+The model is **less late than the real floor**, by 25.3 points (late) and 8.6 points (more than a day
+late); its mean slip of the late tables (0.87 d) is close to the real one (1.02 d). The real floor is
+slower by something the model does not have (the material, merge and lock rules, how the machines are
+really staffed, the real cutter picks, relaxing and marker timing as measured), so S0's absolute output
+and idle times are optimistic. The comparisons between S0 and S1–S3 on the same floor are the findings.

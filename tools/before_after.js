@@ -37,7 +37,7 @@
  *
  * The earlier comparison, cold start -> carry-over (2026-11-06), is RETIRED: the
  * cold-start model was removed on 2026-11-09. Its table is kept as history in
- * SIM_SPEC.md §18 and cannot be reproduced.
+ * docs/HISTORY.md (and docs/archive/SIM_SPEC_2026-11-16.md §18) and cannot be reproduced.
  *
  *   node --max-old-space-size=6144 tools/before_after.js     (npm run beforeafter)
  *
@@ -130,7 +130,7 @@ const HOLD_NAMES = S.HOLD_VARIANTS.map(s => s.name);
 const nPlan = Object.keys(days).length, nTab = R[0].raw.dates.reduce((s, d) => s + R[0].raw.tasks[d].length, 0);
 
 console.log(`\nBEFORE / AFTER  [${A.WEBSITE_MONTHS.join(', ')}]  ${nPlan} plan dates, ${nTab} tables, carry-over floor, no relaxing`);
-console.log('The cold start -> carry-over comparison (2026-11-06) is RETIRED: the cold-start model was removed on 2026-11-09. It is kept as history in SIM_SPEC.md §18.');
+console.log('The cold start -> carry-over comparison (2026-11-06) is RETIRED: the cold-start model was removed on 2026-11-09. It is kept as history in docs/HISTORY.md.');
 console.log(`ESTIMATES: cutter changeover ${SETUP} min and moving ${TRAVEL} min (stages ii, iii); OLD_SPEED ${OLD_SPEED.toFixed(2)} (stages 0, i, ii) is the 2026-11-06 calibration, no longer in the model, measurement-only scaling; fleet = trolleys/day x ${A.CYCLE_DAYS_ESTIMATED}-day round trip (ESTIMATE, never timed).`);
 console.log('');
 for (const st of STAGES) console.log(`  ${st.id.padEnd(6)} ${st.name.padEnd(24)} ${st.live ? 'LIVE floor (re-plan 30 min, marker + fabric, cutter takes the longest wait)' : 'plan once at 07:15, every table ready, cutter in spread order'} | S0 ${st.s0 === 'today' ? 'real Job Sequence (SQL)   ' : 'MO+colour+batch -> 1 group'} | S1-S3 ${st.moOne ? 'keep an MO on one cut group' : 'pairs over the floor   '} | changeover ${String(st.setup).padStart(1)} / moving ${String(st.travel).padEnd(3)} | pace ${st.scaled ? 'G2 / ' + OLD_SPEED.toFixed(2) + ' (old speed)' : 'G2 standard   '} | Q1 ${st.q1 ? 'FIXED (1 batch never mixes)' : 'old (global cap 2)'}`);

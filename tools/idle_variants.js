@@ -3,7 +3,7 @@
  * IDLE-TIME VARIANTS — Node mirror of idle_variants.py
  * ===================================================
  * Mirror, do not improve: same function names, same behaviour, same markdown
- * output as idle_variants.py, so README Part 7 §2/§3/§4 (and the new §4b) can
+ * output as idle_variants.py, so docs/IDLE_TIME.md (old README Part 7 §2/§3/§4/§4b) can
  * be regenerated without Python. Neither script has ever actually executed on
  * this machine's model against the CURRENT data — the numbers this prints have
  * not been cross-checked against a real `python idle_variants.py` run (there is
@@ -12,8 +12,8 @@
  *   node --max-old-space-size=6144 tools/idle_variants.js
  *
  * S0 sequencing (today's planner) across every plan date in the FULL file —
- * idle_variants.py is deliberately unscoped by WEBSITE_MONTHS (README Part 8
- * §5 HARD CHANGE #4). Prints only; writes nothing.
+ * idle_variants.py is deliberately unscoped by WEBSITE_MONTHS (docs/archive/README_2026-11-14.md
+ * Part 8 §5 HARD CHANGE #4). Prints only; writes nothing.
  *
  * Since 2026-11-09 it measures the published carry-over model (carryTimeline(),
  * one running timeline over all 199 plan dates, machines at the G2 standard
@@ -29,7 +29,7 @@ const A = require('./assumptions');
 const M = require('./model');
 
 const REPO = path.join(__dirname, '..');
-const SEQUENCING_MODE = 'today';       // S0 — README Part 7 quotes S0 throughout
+const SEQUENCING_MODE = 'today';       // S0 — docs/IDLE_TIME.md quotes S0 throughout
 const SATURATED_CUTTER_PCT = 90;
 
 // ---- the routing what-ifs (this analysis only — see idle_variants.py) ----
@@ -209,15 +209,14 @@ function section4b(days) {
       + `${r.over_pct.toFixed(0)}% | ${clock(r.last_cut)} | ${comma(old[0])} min, ${old[1]}%, ${old[2]} |`);
   }
   console.log('\nThe trolley-number half of this ladder is table T-C (`tools/tc_table.js`,');
-  console.log('README Part 8 §4): the cutter count moves trolley utilization by ~1 point on');
-  console.log('S0 and not at all on S1–S3.');
+  console.log('SIM_SPEC.md §12): the cutter count barely moves the trolley numbers.');
 }
 
 function main() {
   const [days] = M.loadDays(path.join(REPO, A.DATA_FILE), true);
   const base = measure(days, A.SPREADING_TABLE_LENGTH_M, FLEX_TODAY);
   const tables = Object.values(days).reduce((s, ts) => s + ts.length, 0);
-  console.log(`# README.md Part 7 — regenerated (Node port, carry-over model) from ${base.days} plan dates, ${tables} tables, S0 sequencing`);
+  console.log(`# docs/IDLE_TIME.md — regenerated (Node port, carry-over model) from ${base.days} plan dates, ${tables} tables, S0 sequencing`);
   console.log('# NOTE: python idle_variants.py has never run here — these are the Node port\'s numbers, not cross-checked.\n');
   section2(base);
   section3(base);

@@ -72,12 +72,25 @@ require constant clarification.
 
 ### Read first
 
-1. `cct-trolley-model/SIM_SPEC.md`: exactly what the simulation computes. It holds
-   inputs, constants, algorithms, quirks Q1–Q19 (Q5–Q7 and Q16 retired with the cold start), validation targets (§14), open
-   decisions (§15) and the codebase map (§16).
-2. `cct-trolley-model/RULES.md`: why each rule exists (H1–H9, F2–F8, G2–G6, J2–J3, L6).
-3. `cct-trolley-model/README.md`: history and published findings. **Partly stale.**
-   Check any number in it against the code before quoting it.
+Document roles (reorganised 2026-11-16, user; readers on GitHub are engineers, managers and developers):
+
+1. `RULES.md`: **every rule**, one table row each (ID | rule | value | source), split into common rules (A),
+   this factory's floor facts (B), the three changes (C), estimates (D), simulation rules (E), ruled out (F).
+   Plain language, no quotes. A new or changed rule goes here.
+2. `SIM_SPEC.md`: **the method**, for developers: inputs, constants (§3, with their RULES IDs), algorithms,
+   quirks Q1–Q28, measurement scripts (§12), validation targets (§14), open decisions (§15), codebase map
+   (§16), Rules Lab (§17), carry-over floor (§18). It describes the model as it is now; no history in it.
+3. `README.md`: the introduction and **how the website works**, plus a short developer section. Update it
+   when the page changes.
+4. `docs/HISTORY.md`: the dated changelog, the stage-by-stage before/after (`npm run beforeafter`) and the
+   decisions taken. Every change that moves a published number gets a row and its before/after here.
+   `docs/archive/` holds word-for-word copies of the old README, RULES and SIM_SPEC; never edit them.
+5. `docs/CHANGE_SPEC.md` (for ISD) and `docs/IDLE_TIME.md` (from `npm run idle`).
+6. `docs/DATA_MODEL.md` and `docs/data_model/*.csv` (user, 2026-11-16): the register of entities,
+   attributes, parameters with current values, formulas (EQ1…) and data statistics, the base for a bigger
+   data model later. **Generated** by `tools/data_model.js` (`npm run datamodel`); never edit by hand.
+
+Check any number in a document against the code or a script before quoting it.
 
 **The code wins** over every document. If a document disagrees with the code, the
 document is stale. Say so; don't silently follow it.
@@ -86,6 +99,8 @@ document is stale. Say so; don't silently follow it.
 
 - `tools/assumptions.js` is the **only** place a number
   may live. Nothing is hard-coded in the model. Every value cites its rule.
+- A new constant, attribute or formula also gets its row (words only) in `tools/data_model.js`; the script
+  fails on an undocumented constant. Then run `npm run datamodel` and commit the regenerated files.
 - An estimate is marked `ESTIMATE` in capitals. Never present an estimate as measured.
   The biggest one is `CYCLE_DAYS_ESTIMATED = 7`, which has never been timed.
 - Any change that moves a published number is reported with a **before/after table**,
@@ -130,10 +145,11 @@ document is stale. Say so; don't silently follow it.
 | `npm run lab` | **gate:** Rules Lab checks (vs model.js `runCarry()`) and comparison tables; the same `tools/lab.js` is inlined into the page |
 | `npm run regress` | **gate:** 18 shared dates × 117 scenarios, old file against new, on `runCarry()` (a reader check, not published numbers; the two subsets are copied and re-stamped from their own dates, because the live floor reads each batch's first plan date) |
 | `npm run parity` | **gate:** the page (Rules Lab) re-runs, in Edge, what Node computed: the option sets, all 117 sweep keys, this month's trace |
-| Edge check | **gate:** open the page in Edge: no console errors, badge green on the defaults, and the controls work (rules, cutters, table, fleet sliders). The site is **one page, the Rules Lab**; the Utilization and Simulation tabs were removed 2026-11-14 |
+| Edge check | **gate:** open the page in Edge: no console errors, badge green on the defaults, and the controls work (rules, fleet sliders). The site is **one page, the Rules Lab**; the Utilization and Simulation tabs were removed 2026-11-14 |
+| `npm run datamodel` | **check:** regenerates `docs/DATA_MODEL.md` and its CSVs; `npm run datamodel -- --check` fails if they are out of date or a constant is undocumented. Run the check with the gates before publishing |
 | `npm run ceiling` | measurement: how high trolley utilization could go with perfect packing and unlimited waiting (A–E); explains why more batches per trolley stops near 67% |
 | `npm run idle`, `tc` | measurement tables (carry-over; the old cold-start figures are printed beside, marked historical) |
-| `npm run beforeafter` | the staged before/after, April–June: (0) as published 2026-11-06 → (i) pairs rule → (ii) cutter changeover and moving → (iii) no speed factor → (iv) S0 = the real Job Sequence → (v) the live floor → (vi) Q1 fixed: 1 batch per trolley never mixes (= the published model; 2026-11-14, only the 36 sweep keys with 1 batch and a hold move; the page enables 2/3 batches only under Cross-batch). Asserts that stage (0) reproduces the 2026-11-06 headline, stage (iii) the 2026-11-09 headline, stage (iv) the 2026-11-10 headline, that stage (v) equals `out/results.json`, and that S1–S3, the hold variants and the 78 non-`today` sweep keys do not move from (iii) to (iv). The cold start → carry-over comparison is retired (history in SIM_SPEC.md §18) |
+| `npm run beforeafter` | the staged before/after, April–June: (0) as published 2026-11-06 → (i) pairs rule → (ii) cutter changeover and moving → (iii) no speed factor → (iv) S0 = the real Job Sequence → (v) the live floor → (vi) Q1 fixed: 1 batch per trolley never mixes (= the published model; 2026-11-14, only the 36 sweep keys with 1 batch and a hold move; the page enables 2/3 batches only under Cross-batch). Asserts that stage (0) reproduces the 2026-11-06 headline, stage (iii) the 2026-11-09 headline, stage (iv) the 2026-11-10 headline, that stage (v) equals `out/results.json`, and that S1–S3, the hold variants and the 78 non-`today` sweep keys do not move from (iii) to (iv). The cold start → carry-over comparison is retired (history in docs/HISTORY.md) |
 | `npm run carryprobe` | validation, not calibration: the model's lateness against the real Pull Date (nothing is tuned to it) |
 
 Run any script that reads the 23 MB workbook with `node --max-old-space-size=6144`.
@@ -174,7 +190,7 @@ scenarios, trace or page, and report the result as it is.
   **S0 → S1 still changes the dispatcher and adds pairing (two changes).**
   How it got here, stage by stage (the 2026-11-10 build before the live floor was S0 51.92% / 203.5 /
   1,424 and S3 68.77% / 148.4 / 1,039; the 2026-11-09 build S0 53.49% / 195.9 / 1,371; the 2026-11-06
-  build S0 52.49% / 201.1 / 1,408, at an ESTIMATED speed 0.80): `npm run beforeafter`, SIM_SPEC.md §18.
+  build S0 52.49% / 201.1 / 1,408, at an ESTIMATED speed 0.80): `npm run beforeafter`, docs/HISTORY.md.
   Known gap: the live S0 is less late than the real floor (25.98% of tables late against 51.25% real,
   6.85% more than a day late against 15.44%, `npm run carryprobe`). Accepted and reported, not tuned away.
   Night shift starts at 18:00 (user, 2026-11-09; it moves no published number).
@@ -188,10 +204,11 @@ dispatch, recall and colour grouping are new rules, never in S0. Cutter setup, t
 are all lost time; more setup must never show more output. Every number quoted names its run:
 plan (real or 100k), scenario and floor settings.
 
-**Exception (user, 2026-11-14): cutter count and spreading-table length.** The Lab offers 6/7/8 cutters
-and 24/27 m tables as what-ifs. They belong to **your selection only**: S0 always stays at today's floor
-(5 cutters, 21.2 m), so "vs today" shows the effect of the cutter or table itself plus any rules chosen.
-The 24 and 27 m tables are hypothetical. `npm run lab` checks these floors against `model.runCarry()` exactly.
+**Cutter count and spreading-table length: removed from the page 2026-11-16** (user: cutters change little
+when the plan cannot follow up; table length is for later simulations on other factories' data, each with its
+own rule set on top of the common rules). The Lab engine keeps the options `cutters` and `tableM` (selection
+only, S0 stays at 5 cutters and 21.2 m), and `npm run lab` still checks those floors against
+`model.runCarry()` exactly. The 24 and 27 m tables are hypothetical.
 
 **Rule (a), in the user's words (2026-11-09):** tables of the same MO are paired and spread
 back-to-back; the tasks and takt time are counted **by pairs**, not by single tables. The system
@@ -199,7 +216,7 @@ pairs first, then assigns the pairs to maximise cutting-machine output. Keeping 
 cut group is a **separate option**, not rule (a). At the G2 standard pace the two ways differ by
 under 0.3% of cutter output (cutters are no longer the bottleneck, the spreaders are); the trolley
 findings differ more (S3 68.77% pairs vs 70.37% MO on one cut group). Independent findings, never
-traded (`npm run beforeafter`, SIM_SPEC.md §18).
+traded (`npm run beforeafter`, docs/HISTORY.md).
 
 ### Agent chain
 

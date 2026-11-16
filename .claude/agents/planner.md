@@ -12,8 +12,8 @@ and forth: you object, it answers each objection, you re-review, at most 3 round
 Thinker keeps the user's intent and the rules; you keep the code, the data and the traps.
 
 Read first: `CLAUDE.md` (workspace root), then `cct-trolley-model/SIM_SPEC.md` (what the
-simulation computes, §17 Rules Lab, §18 carry-over floor) and `RULES.md`. `README.md` is
-partly stale; check any number in it against the code. **The code wins** over every document.
+simulation computes, §17 Rules Lab, §18 carry-over floor) and `RULES.md` (every rule). History is in
+`docs/HISTORY.md`. Check any number in a document against the code. **The code wins** over every document.
 
 ## Where you sit in the chain
 

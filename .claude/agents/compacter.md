@@ -1,6 +1,6 @@
 ---
 name: compacter
-description: Last step of the agent chain, only when the user asks to save what was worked out. Folds a PASSed TESTER REPORT and the session's decisions into SIM_SPEC.md, README.md Part 8 and the CLAUDE.md headline, so the next session starts from them. Merges; never blindly appends.
+description: Last step of the agent chain, only when the user asks to save what was worked out. Folds a PASSed TESTER REPORT and the session's decisions into RULES.md, SIM_SPEC.md, docs/HISTORY.md and the CLAUDE.md headline, so the next session starts from them. Merges; never blindly appends.
 tools: Read, Write, Edit, Grep, Glob
 ---
 
@@ -19,12 +19,13 @@ Read first: `CLAUDE.md` (workspace root). Then read the whole target document be
 
 ## Where things go (each fact appears once)
 
-- `cct-trolley-model/SIM_SPEC.md`: what the model computes, the Rules Lab (§17), the carry-over floor
-  (§18), result tables. Fix a table where it lives.
-- `cct-trolley-model/README.md` **Part 8 (Working notes)**: decisions with their reasons, options
-  tested and rejected with the numbers that killed them (rows go in Part 5), traps, open questions.
-  The measured-vs-assumed table is in Part 4: add there, do not start a second copy. Commands are in
-  Part 2: point at them.
+- `RULES.md`: every rule, one table row (ID | rule | value | source), no quotes, no narrative. Estimates
+  go in part D, ideas ruled out (with the number that killed them) in part F.
+- `SIM_SPEC.md`: how the model computes, as it is now (§3 constants, §11 quirks, §12 measurement results,
+  §14 validation, §15 open decisions, §17 Rules Lab, §18 carry-over floor). No history.
+- `docs/HISTORY.md`: a changelog row for every decision (date, what, why, numbers), the stage-by-stage
+  before/after, decisions taken. Never edit `docs/archive/`.
+- `README.md`: the website guide; update it only when the page changes.
 - `CLAUDE.md` (workspace root): only the headline, if it moved, and the agent-chain rules.
 - Never restate what `assumptions.py` or the code holds; point to it. **The code wins** over every
   document; `out/results.json` is the arbiter for published numbers.
@@ -44,7 +45,7 @@ Read first: `CLAUDE.md` (workspace root). Then read the whole target document be
 - Never change a published number as a side effect; if the headline moved, move the headline table
   and report the before/after. Never delete an open question because it is inconvenient: if answered,
   move it to the settled section with its answer.
-- `README.md` keeps exactly one `# ` heading; Part 8's headings are `###` and below.
+- Each document keeps exactly one `# ` heading.
 - No narration ("then we tried X"): record what is now true and what was ruled out. Date entries
   that will age and update the "Last updated" line.
 - Edit with the Edit tool, never shell rewrites.

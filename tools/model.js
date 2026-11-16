@@ -871,7 +871,7 @@ function pool(scenario, perDay) {
     // Option A: pooled (totalPieces / totalTrolleys), matching
     // utilization_pct's basis — was avg('pieces_per_trolley'), a mean of 20
     // daily ratios, which does not equal capacity x fill even once
-    // compartment_fill_pct exists (~1% residual). See README Part 8.
+    // compartment_fill_pct exists (~1% residual). See docs/archive/README_2026-11-14.md Part 8.
     pieces_per_trolley: totalPieces / totalTrolleys,
     spreading_blocked_pct: avg('spreading_blocked_pct'),
     cutting_blocked_pct: avg('cutting_blocked_pct'),

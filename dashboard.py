@@ -394,19 +394,6 @@ table.out .up{color:var(--s2)} table.out .down{color:var(--bad)}
         only, 18:00&ndash;05:00. Both is the floor today.</div>
     </div>
 
-    <div class="ctl">
-      <h3>Machines</h3>
-      <div class="field">
-        <label><span>Cutters against 13 spreaders</span></label>
-        <div class="seg" id="labCutterSeg" role="group" aria-label="Number of cutting machines"></div>
-      </div>
-      <div class="field">
-        <label><span>Spreading table length</span></label>
-        <div class="seg" id="labTableSeg" role="group" aria-label="Spreading table length"></div>
-        <div class="hint">What-ifs: more cutters, or a longer table (24 and 27 m are not tables you own). They are part of
-          your selection only: S0 stays at today's 5 cutters and 21.2 m table.</div>
-      </div>
-    </div>
 
     <div class="ctl">
       <h3>Fleet</h3>
@@ -825,8 +812,7 @@ function badge(sel){
   const published = lab.plan === 'backlog' && lab.pullAhead === 0
     && lab.shift === 'both' && lab.relax === CFG.defaults.relax
     && lab.setupMin === CFG.defaults.setupMin && lab.travelMin === CFG.defaults.travelMin && lab.recall === 'model' && HOLDS.includes(lab.holdMin)
-    && (!lab.moOneGroup || lab.seqMode === 'today')
-    && lab.cutters === CFG.defaults.cutters && lab.tableM === CFG.defaults.tableM;
+    && (!lab.moOneGroup || lab.seqMode === 'today');
   if (published){
     const s = DATA.sweep[key(lab.seqMode, lab.batches, lab.holdMin, lab.anyWs ? 1 : 0)];
     const ok = !!s && Math.abs(sel.utilizationPct - s.utilization_pct) <= 0.0051 && Math.abs(sel.trolleysPerDay - s.trolleys_per_day) <= 0.051;
@@ -837,8 +823,6 @@ function badge(sel){
     return;
   }
   const on = [];
-  if (lab.cutters !== CFG.defaults.cutters) on.push(lab.cutters + ' cutters');
-  if (lab.tableM !== CFG.defaults.tableM) on.push(lab.tableM + ' m table');
   if (lab.pullAhead) on.push('pull-ahead');
   if (lab.shift !== 'both') on.push(lab.shift + ' shift only');
   if (lab.relax !== CFG.defaults.relax) on.push(lab.relax ? 'fabric relaxing' : 'no fabric relaxing');
@@ -1302,10 +1286,6 @@ function wire(){
 }
 function show(){
   $('labDates').textContent = DATA.planDates;
-  if (!wired){
-    $('labCutterSeg').innerHTML = CFG.cutterCounts.map(n => `<button type="button" data-k="cutters" data-v="${n}" aria-pressed="false">${n}</button>`).join('');
-    $('labTableSeg').innerHTML = CFG.tableOptionsM.map(m => `<button type="button" data-k="tableM" data-v="${m}" aria-pressed="false">${m} m</button>`).join('');
-  }
   syncControls(); buildCalendar();
   if (!wired) wire();
   $('labStatus').textContent = 'Loading task data...';
