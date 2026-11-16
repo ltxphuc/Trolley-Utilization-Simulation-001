@@ -793,7 +793,9 @@ function loadTrolleys(plan, scenario) {
       for (const trolley of arr) {
         if (need === 0) break;
         const wouldCarry = new Set([...trolley.batches, ...batches]);
-        if (wouldCarry.size > A.MAX_BATCHES_PER_TROLLEY) continue;   // 3rd batch
+        // Q1 fixed 2026-11-14: the cap is the scenario's own (1 = never mix), never above the floor's 2
+        const batchCap = A.TOPUP_BATCH_CAP_FROM_SCENARIO ? Math.min(scenario.max_batches, A.MAX_BATCHES_PER_TROLLEY) : A.MAX_BATCHES_PER_TROLLEY;
+        if (wouldCarry.size > batchCap) continue;   // one batch too many
         const take = Math.min(trolley.free, need);
         if (take === 0) continue;
         trolley.free -= take;

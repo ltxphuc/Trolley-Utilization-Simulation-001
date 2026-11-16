@@ -18,7 +18,12 @@
  *       MO + colour + batch cluster on one cut group), which is kept only for this script.
  *       Only S0 and the 39 'today' sweep keys may move from (iii) to (iv); S1-S3, the hold
  *       variants and the other 78 keys must not move by one bit (asserted).
- *       This is the published model now and must equal out/results.json.
+ *       (Superseded by (v) and (vi).)
+ *   (v) + the live floor (user, 2026-11-10; tools/floor.js, A.LIVE_FLOOR).
+ *   (vi) + Q1 fixed (user, 2026-11-14): "1 batch per trolley" never mixes batches, even with a WIP
+ *       hold (A.TOPUP_BATCH_CAP_FROM_SCENARIO). Stages (0)-(v) run the old global cap of 2. Only the
+ *       sweep keys with batches = 1 and a hold may move; the headline and the hold variants must
+ *       not move by one bit (asserted). This is the published model now and must equal out/results.json.
  *
  * OLD_SPEED is the 2026-11-06 calibration, an ESTIMATE, NO LONGER IN THE MODEL. It
  * is reproduced here by a measurement-only scaling: a copy of the loaded days whose
@@ -69,8 +74,9 @@ const STAGES = [
   { id: '(iii)', name: '+ no speed factor', moOne: false, setup: SETUP, travel: TRAVEL, scaled: false, s0: 'today_grouped', live: false },
   { id: '(iv)', name: '+ S0 = real Job Seq', moOne: false, setup: SETUP, travel: TRAVEL, scaled: false, s0: 'today', live: false },
   { id: '(v)', name: '+ live floor', moOne: false, setup: SETUP, travel: TRAVEL, scaled: false, s0: 'today', live: true },
+  { id: '(vi)', name: '+ 1 batch never mixes', moOne: false, setup: SETUP, travel: TRAVEL, scaled: false, s0: 'today', live: true, q1: true },
 ];
-const LIVE0 = A.LIVE_FLOOR;
+const LIVE0 = A.LIVE_FLOOR, Q1_0 = A.TOPUP_BATCH_CAP_FROM_SCENARIO;
 
 // A scenario as a stage runs it: S0 ('today') takes the stage's S0 mode; the flag keeps an MO on one cut group.
 const scFor = (sc, st) => {
@@ -84,6 +90,7 @@ const fleet7 = r => r.trolleys_per_day * A.CYCLE_DAYS_ESTIMATED;
 // One stage, everything computed with A's cutter constants set for the stage.
 function runStage(st) {
   A.CUT_SETUP_MO_COLOR_MINUTES = st.setup; A.CUT_TRAVEL_MINUTES = st.travel; A.LIVE_FLOOR = !!st.live;
+  A.TOPUP_BATCH_CAP_FROM_SCENARIO = !!st.q1;
   try {
     const D = st.scaled ? scaledDays : days;
     const out = { st, head: [], hold: [], sweep: new Map(), full: {} };
@@ -105,7 +112,7 @@ function runStage(st) {
     out.raw = raw;
     out.full = JSON.stringify(out.head[0]);    // S0, every field, for the bit-identical assert
     return out;
-  } finally { A.CUT_SETUP_MO_COLOR_MINUTES = SETUP; A.CUT_TRAVEL_MINUTES = TRAVEL; A.LIVE_FLOOR = LIVE0; }
+  } finally { A.CUT_SETUP_MO_COLOR_MINUTES = SETUP; A.CUT_TRAVEL_MINUTES = TRAVEL; A.LIVE_FLOOR = LIVE0; A.TOPUP_BATCH_CAP_FROM_SCENARIO = Q1_0; }
 }
 
 const R = STAGES.map(runStage);
@@ -126,7 +133,7 @@ console.log(`\nBEFORE / AFTER  [${A.WEBSITE_MONTHS.join(', ')}]  ${nPlan} plan d
 console.log('The cold start -> carry-over comparison (2026-11-06) is RETIRED: the cold-start model was removed on 2026-11-09. It is kept as history in SIM_SPEC.md §18.');
 console.log(`ESTIMATES: cutter changeover ${SETUP} min and moving ${TRAVEL} min (stages ii, iii); OLD_SPEED ${OLD_SPEED.toFixed(2)} (stages 0, i, ii) is the 2026-11-06 calibration, no longer in the model, measurement-only scaling; fleet = trolleys/day x ${A.CYCLE_DAYS_ESTIMATED}-day round trip (ESTIMATE, never timed).`);
 console.log('');
-for (const st of STAGES) console.log(`  ${st.id.padEnd(6)} ${st.name.padEnd(24)} ${st.live ? 'LIVE floor (re-plan 30 min, marker + fabric, cutter takes the longest wait)' : 'plan once at 07:15, every table ready, cutter in spread order'} | S0 ${st.s0 === 'today' ? 'real Job Sequence (SQL)   ' : 'MO+colour+batch -> 1 group'} | S1-S3 ${st.moOne ? 'keep an MO on one cut group' : 'pairs over the floor   '} | changeover ${String(st.setup).padStart(1)} / moving ${String(st.travel).padEnd(3)} | pace ${st.scaled ? 'G2 / ' + OLD_SPEED.toFixed(2) + ' (old speed)' : 'G2 standard   '}`);
+for (const st of STAGES) console.log(`  ${st.id.padEnd(6)} ${st.name.padEnd(24)} ${st.live ? 'LIVE floor (re-plan 30 min, marker + fabric, cutter takes the longest wait)' : 'plan once at 07:15, every table ready, cutter in spread order'} | S0 ${st.s0 === 'today' ? 'real Job Sequence (SQL)   ' : 'MO+colour+batch -> 1 group'} | S1-S3 ${st.moOne ? 'keep an MO on one cut group' : 'pairs over the floor   '} | changeover ${String(st.setup).padStart(1)} / moving ${String(st.travel).padEnd(3)} | pace ${st.scaled ? 'G2 / ' + OLD_SPEED.toFixed(2) + ' (old speed)' : 'G2 standard   '} | Q1 ${st.q1 ? 'FIXED (1 batch never mixes)' : 'old (global cap 2)'}`);
 
 function stageTable(title, rows, get, d) {
   console.log(`\n${title}`);
@@ -151,6 +158,18 @@ for (let i = 1; i < R.length; i++) {
   const mh = R[i].hold.filter((r, k) => r.utilization_pct !== R[i - 1].hold[k].utilization_pct || r.trolleys_per_day !== R[i - 1].hold[k].trolleys_per_day || r.peak_trolleys_in_a_day !== R[i - 1].hold[k].peak_trolleys_in_a_day).length;
   console.log(`  ${STAGES[i].id.padEnd(8)}│ ${String(mv).padStart(12)} │ ${String(mvToday).padStart(11)} │ ${String(mh).padStart(8)}`);
 }
+
+console.log('\n==================== Q1 FIXED (stage (v) -> (vi)): "1 batch per trolley" never mixes, batches = 1 with a WIP hold ====================');
+console.log(`  ${'sweep key mode|batches|hold|anyWs'.padEnd(26)}│ util % (v) │ util % (vi) │ change │ trolleys/day (v) │ (vi)`);
+let q1Moved = 0;
+for (const [key, s6] of R[6].sweep) {
+  const s5 = R[5].sweep.get(key);
+  if (s6 === s5) continue;
+  q1Moved += 1;
+  const [u5, t5] = JSON.parse(s5), [u6, t6] = JSON.parse(s6);
+  console.log(`  ${key.padEnd(26)}│ ${u5.toFixed(2).padStart(10)} │ ${u6.toFixed(2).padStart(11)} │ ${(u6 - u5 >= 0 ? '+' : '') + (u6 - u5).toFixed(2)} │ ${t5.toFixed(1).padStart(16)} │ ${t6.toFixed(1).padStart(5)}`);
+}
+console.log(`  ${q1Moved} of ${R[6].sweep.size} sweep keys moved; headline S0-S3 and the hold variants do not move.`);
 
 console.log('\n==================== CUTTER OUTPUT FINDINGS (Rules Lab engine, pieces the cutters cut) ====================');
 console.log('cut/day = pieces finished inside the plan period / plan dates. h/100k = staffed shift hours to cut 100k pieces. Same floor in every row: only the rules differ.');
@@ -233,22 +252,33 @@ const cmpAll = (grp, name, r) => {
     if (r[k] !== pub[grp][name][k]) { nBad += 1; if (!first) first = `${name} ${k}: here ${r[k]} out/results.json ${pub[grp][name][k]}`; }
   }
 };
-R[5].head.forEach((r, i) => cmpAll('headline', S.HEADLINE[i].name, r));
-R[5].hold.forEach((r, i) => cmpAll('hold_variants', S.HOLD_VARIANTS[i].name, r));
-say(nBad === 0, `stage (v) equals out/results.json (headline + hold variants) at full precision: ${nCmp} fields, ${nBad} differ${first ? ' (first: ' + first + ')' : ''}`);
+R[6].head.forEach((r, i) => cmpAll('headline', S.HEADLINE[i].name, r));
+R[6].hold.forEach((r, i) => cmpAll('hold_variants', S.HOLD_VARIANTS[i].name, r));
+say(nBad === 0, `stage (vi) equals out/results.json (headline + hold variants) at full precision: ${nCmp} fields, ${nBad} differ${first ? ' (first: ' + first + ')' : ''}`);
 let sBad = 0;
-for (const [key, s] of R[5].sweep) {
+for (const [key, s] of R[6].sweep) {
   const [u, t, p] = JSON.parse(s);
   const row = pub.sweep[key];
   const bk = require('./round').bankersRound;
   if (bk(u, 2) !== row.utilization_pct || bk(t, 1) !== row.trolleys_per_day || p !== row.peak) sBad += 1;
 }
-say(sBad === 0, `stage (v) equals out/results.json sweep on all ${R[5].sweep.size} keys (utilization, trolleys/day, peak, as rounded in the build): ${sBad} differ`);
+say(sBad === 0, `stage (vi) equals out/results.json sweep on all ${R[6].sweep.size} keys (utilization, trolleys/day, peak, as rounded in the build): ${sBad} differ`);
+// stage (v) -> (vi), Q1 fixed: only batches = 1 with a hold may move; the headline and the hold variants must not
+say([0, 1, 2, 3].every(i => sameJson(R[5].head[i], R[6].head[i])), 'S0, S1, S2, S3 (every field) are bit-identical from stage (v) to stage (vi)');
+say(R[5].hold.every((r, k) => sameJson(r, R[6].hold[k])), `the ${R[5].hold.length} hold variants (every field) are bit-identical from stage (v) to stage (vi)`);
+let q1Out = 0, q1Allowed = 0;
+for (const [key, s6] of R[6].sweep) {
+  const [mode, b, h] = key.split('|');
+  const allowed = +b === 1 && +h > 0;
+  if (allowed) q1Allowed += 1;
+  if (!allowed && s6 !== R[5].sweep.get(key)) q1Out += 1;
+}
+say(q1Out === 0, `no sweep key outside "1 batch with a hold" moves from stage (v) to stage (vi) (${q1Out} do); ${q1Moved} of the ${q1Allowed} such keys moved`);
 // the Lab engine and the model agree on every stage (the Lab check in lab_table.js, here on the staged floors)
 let lBad = 0;
 R.concat([case2Ii, case2, case2Iv, case2V]).forEach(r => r.head.forEach((m, i) => { if (r.lab[i].real.utilizationPct !== m.utilization_pct || r.lab[i].real.trolleysPerDay !== m.trolleys_per_day) lBad += 1; }));
 say(lBad === 0, `Lab engine utilization and trolleys/day equal model.runCarry() for S0-S3 at every stage and for case 2 at stages (ii), (iii) and (iv) (${lBad} differ)`);
 // A restored
-say(A.CUT_SETUP_MO_COLOR_MINUTES === SETUP && A.CUT_TRAVEL_MINUTES === TRAVEL, 'assumptions restored after the staged runs');
+say(A.CUT_SETUP_MO_COLOR_MINUTES === SETUP && A.CUT_TRAVEL_MINUTES === TRAVEL && A.LIVE_FLOOR === LIVE0 && A.TOPUP_BATCH_CAP_FROM_SCENARIO === Q1_0, 'assumptions restored after the staged runs');
 console.log(ok ? '\n=> ALL ASSERTS PASS' : '\n=> ASSERTS FAILED');
 process.exit(ok ? 0 : 1);

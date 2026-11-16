@@ -453,7 +453,8 @@ table.out .up{color:var(--s2)} table.out .down{color:var(--bad)}
           <button type="button" data-k="batches" data-v="2" aria-pressed="false">2</button>
           <button type="button" data-k="batches" data-v="3" aria-pressed="false">3</button>
         </div>
-        <div class="hint">2 or more lets two batches of one MO and colour share a trolley (2 and 3 behave the same).</div>
+        <div class="hint">Two batches of one MO and colour share a trolley only with Cross-batch sequencing (2 and 3 behave
+          the same). 1 never mixes batches, even with a WIP hold.</div>
       </div>
       <div class="field">
         <label><span><span class="chg">3</span>WIP hold</span><span class="val" id="lv_holdMin"></span></label>
@@ -474,7 +475,7 @@ table.out .up{color:var(--s2)} table.out .down{color:var(--bad)}
           <button type="button" data-k="recall" data-v="sameFirst" aria-pressed="false">Same batch first</button>
           <button type="button" data-k="recall" data-v="sameOnly" aria-pressed="false">Same batch only</button>
         </div>
-        <div class="hint">Published takes any trolley of the same MO and colour (two batches at most). Same batch
+        <div class="hint">Published takes any trolley of the same MO and colour, up to the batches-per-trolley setting. Same batch
           first recalls a trolley already holding the batch just cut, and uses another batch's trolley only if
           none is waiting. Same batch only never mixes at recall.</div>
       </div>
@@ -779,6 +780,8 @@ function syncControls(){
     const cur = lab[b.dataset.k], v = typeof cur === 'boolean' ? (cur ? '1' : '0') : String(cur);
     b.setAttribute('aria-pressed', String(v === b.dataset.v));
     if (b.dataset.k === 'moOneGroup') b.disabled = lab.seqMode === 'today';
+    // two batches share a trolley only when Cross-batch sequencing is chosen (user, 2026-11-14)
+    if (b.dataset.k === 'batches') b.disabled = b.dataset.v !== '1' && lab.seqMode !== 'cross_batch';
   });
   $$('#tabLab input[data-k]').forEach(el => { el.value = lab[el.dataset.k]; });
   for (const k of Object.keys(SLIDER_LABEL)){ const el = $('lv_' + k); if (el) el.textContent = SLIDER_LABEL[k](lab[k]); }
@@ -1273,8 +1276,8 @@ function wire(){
   $$('#tabLab button[data-k]').forEach(b => b.addEventListener('click', () => {
     const k = b.dataset.k, cur = lab[k], v = b.dataset.v;
     lab[k] = typeof cur === 'boolean' ? v === '1' : typeof cur === 'number' ? +v : v;
-    if (k === 'seqMode') lab.ruleA = lab.seqMode !== 'today';
-    if (k === 'batches') lab.mix = lab.batches >= 2;
+    if (k === 'seqMode') { lab.ruleA = lab.seqMode !== 'today'; if (lab.seqMode !== 'cross_batch') lab.batches = 1; }
+    if (k === 'batches' || k === 'seqMode') lab.mix = lab.batches >= 2;
     syncControls(); schedule();
   }));
   $$('#tabLab input[data-k]').forEach(el => el.addEventListener('input', () => {

@@ -40,7 +40,7 @@ function makeConfig(A) {
     comps: A.TROLLEY_COMPARTMENTS,
     maxPerCombine: A.MAX_TROLLEYS_PER_COMBINE,
     bays: A.TROLLEY_BAYS,
-    maxBatches: A.MAX_BATCHES_PER_TROLLEY,
+    maxBatches: A.MAX_BATCHES_PER_TROLLEY, topupScenarioCap: A.TOPUP_BATCH_CAP_FROM_SCENARIO,
     cutGroups: A.CUT_GROUPS,
     // the what-ifs moved from the Simulation tab (2026-11-14): cutter count and table length. Part of
     // the SELECTION only: S0 (ladder()) never gets them, so S0 stays at today's floor (5 cutters, 21.2 m).
@@ -790,7 +790,8 @@ function createEngine(cfg) {
         for (const tr of cands) {
           if (need === 0) break;
           const would = new Set([...tr.batches, ...ev.batches]);
-          if (would.size > cfg.maxBatches) continue;
+          // Q1 fixed 2026-11-14: without "2 or more batches per trolley" (o.mix) a trolley never takes a 2nd batch
+          if (would.size > (cfg.topupScenarioCap && !o.mix ? 1 : cfg.maxBatches)) continue;
           const take = Math.min(tr.free, need);
           if (take === 0) continue;
           const kind = intersects(tr.batches, ev.batches) ? 'same' : 'cross';

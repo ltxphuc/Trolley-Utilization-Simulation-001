@@ -404,7 +404,7 @@ differ, concatenate each table's own compartments per film.
 3. For each film in the event's compartments, in insertion order:
    - `compartments += n`; `pieces += Σ qty`.
    - Key = `(mo, colour, film)`, plus the machine if not `hold_any_workstation`. There is no component in the key.
-   - **Top up:** for each parked trolley under the key, in order: skip it if the batches would exceed the **global** `MAX_BATCHES_PER_TROLLEY` (QUIRK Q1); take `min(free, need)`. Remove trolleys whose `free` reaches 0.
+   - **Top up:** for each parked trolley under the key, in order: skip it if the batches would exceed `min(scenario.max_batches, MAX_BATCHES_PER_TROLLEY)` (Q1, fixed 2026-11-14 by `A.TOPUP_BATCH_CAP_FROM_SCENARIO`; `false` = the old global cap of 2); take `min(free, need)`. Remove trolleys whose `free` reaches 0.
    - **Open new:** while compartments remain: open a trolley, take `min(5, need)`, `trolleys += 1`. If it has spare compartments and `hold > 0`: park it if fewer than 52 trolleys are parked in total; otherwise `blocked_by_space += 1`.
 4. Trolleys still parked at the end of the day are never expired or counted again.
 
@@ -473,7 +473,7 @@ Each one must be reproduced to match the published results, or deliberately chan
 
 | # | Quirk | Effect |
 |---|---|---|
-| Q1 | The parked top-up checks the **global** `MAX_BATCHES_PER_TROLLEY`, not `scenario.max_batches` | max_batches 2 and 3 give identical results |
+| Q1 | **FIXED 2026-11-14** (user). The parked top-up used to check the **global** `MAX_BATCHES_PER_TROLLEY`, so "1 batch per trolley" with a WIP hold still mixed two batches. It now checks `min(scenario.max_batches, MAX_BATCHES_PER_TROLLEY)`. Still true: max_batches 2 and 3 give identical results (the floor's cap is 2) | only the 36 sweep keys with batches = 1 and a hold moved; the headline and the hold variants did not (stage (vi), §18). The page now enables 2 and 3 batches only under Cross-batch sequencing |
 | Q2 | `can_combine` doesn't check film, component or workstation | film is handled per compartment; component can't be checked; workstation is implied by adjacency |
 | Q3 | `combines` counts only multi-batch events | same-batch combines are invisible in the count |
 | Q4 | `sequence_mo_aware` (now the option "Keep an MO on one cut group") and `sequence_pairs` (the published S1–S3 pairing) call `can_combine(…, cross=True)` in both passes | the pass list, not the call, decides cross-batch pairing |
@@ -864,6 +864,27 @@ What this shows, and what it does not:
   pairing (two changes).
 - Case 1 (pairs over the floor) against case 2 (keep an MO on one cut group) at stage (v): S3 67.45% /
   151.7 / 1,062 against 66.85% / 153.1 / 1,072; cutter output 97,119 against 97,618 (100k plan).
+
+### Stage (vi): Q1 fixed, "1 batch per trolley" never mixes (2026-11-14; `npm run beforeafter`)
+
+User rule: the 2 and 3 batch options exist only under Cross-batch sequencing; with anything else, batches
+per trolley is 1 and must really mean 1. Before the fix, 1 batch plus a WIP hold still topped a parked
+trolley up with a second batch (global cap of 2). **S0–S3 and the five hold variants do not move by one bit**
+(asserted); only the 36 sweep keys with batches = 1 and a hold move, all downward. Trolley findings,
+April–June, 79 plan dates, live floor (cutter changeover 5 / moving 1.5 and the 7-day trip are ESTIMATES):
+
+| sweep key (mode \| batches \| hold min \| any workstation) | util % (v) → (vi) | trolleys / day (v) → (vi) |
+|---|---|---|
+| today \| 1 \| 60 \| any ws | 62.19 → 56.48 | 169.9 → 187.1 |
+| today \| 1 \| 240 \| any ws | 73.26 → 63.92 | 144.2 → 165.3 |
+| today \| 1 \| 240 \| same ws | 53.33 → 51.96 | 198.1 → 203.3 |
+| same_batch \| 1 \| 120 \| any ws | 70.43 → 63.10 | 145.3 → 162.1 |
+| cross_batch \| 1 \| 120 \| any ws | 70.46 → 63.16 | 145.2 → 162.0 |
+| cross_batch \| 1 \| 240 \| any ws | 74.18 → 65.11 | 137.9 → 157.1 |
+
+All 36 keys: `npm run beforeafter`. The old figures were mixing batches, so they overstated what a hold can do
+at 1 batch per trolley; a hold now helps only when the cap is 2 (S3). Idle time (cutter output) is a
+separate finding and did not move.
 
 ### Validation against the real floor (`npm run carryprobe`, April–June)
 

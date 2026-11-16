@@ -11,6 +11,11 @@ const COMPARTMENT_CAP = 150;         // H1 — max garments in one compartment
 const MAX_BATCHES_PER_TROLLEY = 2;   // floor rule — a trolley may carry 2 fabric
                                       // batches in separate compartments, NEVER 3.
 
+// Q1 fixed (user, 2026-11-14): a parked trolley is topped up with a 2nd batch only when the SCENARIO allows
+// 2 batches (max_batches >= 2), so "1 batch per trolley" never mixes, even with a WIP hold. false = the old
+// global cap of MAX_BATCHES_PER_TROLLEY whatever the scenario says; kept only for `npm run beforeafter`.
+const TOPUP_BATCH_CAP_FROM_SCENARIO = true;
+
 const MAX_TROLLEYS_PER_COMBINE = 4;  // H8
 const TROLLEY_BAYS = 52;             // H7 — 13 workstations x 4 trolley positions.
 
@@ -193,7 +198,7 @@ const DATA_SHEET = 'HaveCut';
 const PIN_DATA_FILE = 'data/planppc.xlsx';
 
 module.exports = {
-  TROLLEY_COMPARTMENTS, COMPARTMENT_CAP, MAX_BATCHES_PER_TROLLEY,
+  TROLLEY_COMPARTMENTS, COMPARTMENT_CAP, MAX_BATCHES_PER_TROLLEY, TOPUP_BATCH_CAP_FROM_SCENARIO,
   MAX_TROLLEYS_PER_COMBINE, TROLLEY_BAYS,
   FLEET_SIZE, CYCLE_DAYS_ALLOWED, CYCLE_DAYS_ESTIMATED,
   WIP_HOLD_MINUTES, WIP_HOLD_ANY_WORKSTATION, WIP_HOLD_MATCH_ON,
