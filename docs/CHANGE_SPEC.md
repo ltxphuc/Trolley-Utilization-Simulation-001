@@ -29,7 +29,10 @@ These changes raise trolley utilization. They do not change how many pieces the 
 
 ## 1. The rules as they are today
 
-From the Job Sequence / Panel Loading Suggest Logic. The full lists are in [RULES.md](../RULES.md) A2.
+From the Job Sequence / Panel Loading Suggest Logic and the factory rulebook. The full lists are in
+[RULES.md](../RULES.md) A2. The combine automation already exists and works (O1). Today it fires only when
+two tables are spread back-to-back on the same spreader **and** use the same batch (O2). The first condition
+stays (O3); the proposal relaxes only the second (O4); and neither change works alone (O5).
 
 | Condition | Change |
 |---|---|
@@ -83,7 +86,8 @@ MAX_BATCHES_PER_TROLLEY = 2      # never 3 (C2.1)
 - Two batches may share a trolley only when the Job Sequence pairs across batches (Cross-batch, C2.2).
 - With a limit of 1, a trolley never takes a second batch, also not when a waiting trolley is topped up
   (C2.3).
-- Compartments do not change: one batch and one size per compartment, one film size per trolley (H4).
+- Compartments do not change: one batch and one size per compartment (H1), one film size per trolley (H3).
+  Different batches sit in separate compartments (H4).
 - Same batch: same-size pieces merge into one compartment up to 150. Different batches: each table keeps
   its own compartments (C2.4).
 
@@ -171,7 +175,7 @@ Four measurements would replace estimates with facts:
 
 1. **Trolley round trip**: dispatch from Panel Loading to return. The fleet case turns on it (E1).
 2. **Compartments loaded per trolley and garments per compartment** at dispatch, measured together:
-   utilization alone cannot tell a part-opened trolley from a fully opened but part-full one (H6, M2).
+   utilization alone cannot tell a part-opened trolley from a fully opened but part-full one (H6, H13; KPI1, KPI2).
 3. **How often a recall is possible but the trolley cannot be moved**: the cost of the open question in §4.
 4. **Combines fired per day**, before and after Change 1.
 

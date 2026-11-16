@@ -166,7 +166,7 @@ values, with every formula that uses them, are in the generated register [docs/D
 | `MAX_BATCHES_PER_TROLLEY` | 2 (never 3) | proposed rule | C2.1 |
 | `TOPUP_BATCH_CAP_FROM_SCENARIO` | true: the top-up cap is `min(scenario.max_batches, 2)`; false = the old global cap, kept only for `npm run beforeafter` | rule | C2.3 (Q1) |
 | `MAX_TROLLEYS_PER_COMBINE` | 4 | rule | H8 |
-| `TROLLEY_BAYS` | 52 (13 WS × 4) | rule | H7 |
+| `TROLLEY_BAYS` | 52 (13 spreaders × the 4 trolleys of H7) | rule | H7, C3.6 |
 | `FLEET_SIZE` | 1,200 | fact | B4 |
 | `CYCLE_DAYS_ALLOWED` | 5 (1 + 3 + 1) | allowance | B5 |
 | `CYCLE_DAYS_ESTIMATED` | 7 | **ESTIMATE, never timed** | B6, E1 |
@@ -175,7 +175,7 @@ values, with every formula that uses them, are in the generated register [docs/D
 | `WIP_HOLD_MATCH_ON` | (mo, color, film_size) | proposed | C3.3 |
 | `FILM_SIZE_BY_GARMENT_SIZE`, `UNIVERSAL_SIZES` | XXS/XS/S → 90; M/L → 100; XL/XXL/3XL/4XL → 110 | substitute for Net_Rate | H5, E8 |
 | `TASK_STATUS_COLORS`, `TASK_STATUS_NOT_SIMULATED` | the 8 status colours (§10) | display only | — |
-| `RELAX_HOURS` | 24 | rule | R3 |
+| `RELAX_HOURS` | 24 | rule | R3, K1 |
 | `RELAX_ARRIVAL_LEAD_MIN_H` / `RELAX_ARRIVAL_LEAD_MAX_H` | 12 / 48 h before the batch's first plan date | **ESTIMATE** | R4, E4 |
 | `CUT_GROUPS_BY_CUTTER_COUNT`, `SIM_CUTTER_COUNTS` | 5/6/7/8 cutters (§4); engine and measurement scripts only | 5 = floor | F2 |
 | `CUTTER_COUNT`, `CUT_GROUPS` | 5, the 5-cutter groups | floor | F2 |
@@ -373,7 +373,7 @@ next table and is not re-planned.
 **`compartments_for(pieces_by_size)`** → an ordered map `film → [compartment quantities]`.
 Walk the sizes in insertion order: `full, rem = divmod(qty, 150)`; push `full × 150`,
 then `rem` if non-zero. Sizes are **never merged** across sizes: one compartment holds
-one size (H4).
+one size (H1).
 
 **`trolleys_for(comps)`** = `Σ over films ceil(len(list) / 5)`. One trolley holds one film.
 
@@ -579,7 +579,14 @@ Decided items are in [docs/HISTORY.md](docs/HISTORY.md).
 3. **Validation.** `npm run carryprobe` compares the model's lateness with `Pull Date` (nothing is tuned to it); the 378 `Cut Date` rows give the Pull → Cut gap (median 82 min), not yet used. Open: what slows the real floor.
 4. **Quirks.** Decide which of Q2–Q4, Q8–Q15, Q17–Q28 to keep for continuity and which to fix, each with a before/after table (Q1 is fixed; Q5–Q7 and Q16 are retired).
 5. **S0 → S1 is two changes** (a different dispatcher and pairing). A one-rule S1 (S0 with the SQL's own `SameBatchMoTogether` switch on) would separate them.
-6. **Floor measurements still needed:** trolley round trip, how a trolley moves between workstations, changeover and moving minutes, fabric arrival times, whether breaks stop machines, per-table lengths.
+6. **Real relaxing data and relaxing trolleys** (Rulebook B.2, C.a, C.b, Q.1). The rulebook asks for fabric
+   relaxing to be simulated with spreading and cutting, including relaxing trolleys (6 rolls, at most 2
+   colours), the 2 feed positions per spreader, and a partly relaxed batch holding its tables back. Today
+   fabric arrival is an ESTIMATE per batch (R4). A sample with real relaxing start and end per batch and roll
+   exists (`RelaxingInfo - Sample.xlsx`, in the Panel Loading Pilot folder outside this repo; join on So_No =
+   the first 9 characters of MO, J6). Reading it, and modelling the trolleys and feed positions, is a model
+   change with a before/after table.
+7. **Floor measurements still needed:** trolley round trip, how a trolley moves between workstations, changeover and moving minutes, fabric arrival times, whether breaks stop machines, per-table lengths.
 
 ## 16. Codebase map
 
@@ -707,7 +714,7 @@ relaxing, cutter setup and travel come from the selection, so S0 carries them to
 | Page control | Option | Values | RULES.md |
 |---|---|---|---|
 | Shift | `shift` | `both` (default), `day`, `night` | C4.2 |
-| Round trip, Trolleys owned | page state `cycle`, `fleet` | 3–10 days (7), 600–2,200 (1,200); arithmetic only, no re-run | M4, M5 |
+| Round trip, Trolleys owned | page state `cycle`, `fleet` | 3–10 days (7), 600–2,200 (1,200); arithmetic only, no re-run | KPI4, KPI5 |
 | Same-MO sequencing | `seqMode` | `today` (Off), `same_batch`, `cross_batch` | C1.1 |
 | Where the pairs go | `moOneGroup` | pairs over the floor (default) / keep an MO on one cut group; only with same-MO sequencing on | C1.5 |
 | Batches per trolley | `batches` (`mix = batches ≥ 2`) | 1, 2, 3; 2 and 3 are enabled only with `cross_batch`, and leaving `cross_batch` resets to 1 | C2.1–C2.3 |

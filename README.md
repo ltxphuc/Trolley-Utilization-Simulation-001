@@ -171,6 +171,6 @@ tools/
   lab_table.js, regress.js, parity_check.js      the gates
   before_after.js, carryover_probe.js, idle_variants.js, tc_table.js, util_ceiling.js   measurements
   data_model.js      writes docs/DATA_MODEL.md and docs/data_model/*.csv
-data/                the source workbooks (HaveCut) and the Job Sequence SQL; never modified
+data/                the source workbooks (HaveCut), the Job Sequence SQL and the factory rulebook (RULES.docx); never modified
 out/                 build output; out/*.bak are the last output of the retired Python build (never edit)
 ```
